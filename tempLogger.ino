@@ -127,22 +127,20 @@ void setup() {
 }
 
 void initializeTemp() {
-  nextTemp = curTemp = (htu21df.readTemperature() - corrTemp) ;
-  nextHumi = curHumi = (htu21df.readHumidity() - corrHumi) ;
-  nextSqTemp = sqTemp = curTemp * curTemp ;
-  nextSqHumi = sqHumi = curHumi * curHumi ;
+  nextTemp = curTemp = (htu21df.readTemperature() - corrTemp);
+  nextHumi = curHumi = (htu21df.readHumidity() - corrHumi);
+  nextSqTemp = sqTemp = curTemp * curTemp;
+  nextSqHumi = sqHumi = curHumi * curHumi;
 }
 
 
 void outputPressTempSensors() {
-  // Serial.print("T = ");
-  // Serial.print(bme.readTemperature());
-  // Serial.print(" *C --- P = ");
-  // Serial.print(bme.readPressure() / 1.0E5);
-  Serial.print(" bar ---  Humi: ");
-  Serial.print(htu21df.readHumidity(), 2);
+
   Serial.print(" --- T2: ");
-  Serial.println(htu21df.readTemperature(), 2);
+  Serial.print(htu21df.readTemperature(), 2);
+  Serial.print(" ---  Humi: ");
+  Serial.print(htu21df.readHumidity(), 2);
+  Serial.println("%");
 }
 
 void loop() {
@@ -200,6 +198,13 @@ void loop() {
       sqHumi = nextSqHumi;
       nextSqTemp = tempMeas * tempMeas;
       nextSqHumi = humMeas * humMeas;
+    }
+  }
+
+  if (Serial.available()) {
+    char controlMsg = Serial.read();
+    if (controlMsg == 'v') {
+      outputVerboseTemp = !outputVerboseTemp;
     }
   }
 
