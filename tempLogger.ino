@@ -53,6 +53,7 @@ const int lenWindow = 10;
 
 int cnt = 0;
 int cntElem = 0;
+boolean executePost = false;
 
 void setup() {
   // put your setup code here, to run once:
@@ -127,22 +128,20 @@ void setup() {
 }
 
 void initializeTemp() {
-  nextTemp = curTemp = (htu21df.readTemperature() - corrTemp) ;
-  nextHumi = curHumi = (htu21df.readHumidity() - corrHumi) ;
-  nextSqTemp = sqTemp = curTemp * curTemp ;
-  nextSqHumi = sqHumi = curHumi * curHumi ;
+  nextTemp = curTemp = (htu21df.readTemperature() - corrTemp);
+  nextHumi = curHumi = (htu21df.readHumidity() - corrHumi);
+  nextSqTemp = sqTemp = curTemp * curTemp;
+  nextSqHumi = sqHumi = curHumi * curHumi;
 }
 
 
 void outputPressTempSensors() {
-  // Serial.print("T = ");
-  // Serial.print(bme.readTemperature());
-  // Serial.print(" *C --- P = ");
-  // Serial.print(bme.readPressure() / 1.0E5);
-  Serial.print(" bar ---  Humi: ");
-  Serial.print(htu21df.readHumidity(), 2);
+
   Serial.print(" --- T2: ");
-  Serial.println(htu21df.readTemperature(), 2);
+  Serial.print(htu21df.readTemperature(), 2);
+  Serial.print(" ---  Humi: ");
+  Serial.print(htu21df.readHumidity(), 2);
+  Serial.println("%");
 }
 
 void loop() {
@@ -156,50 +155,14 @@ void loop() {
     if (outputVerboseTemp) {
       outputPressTempSensors();
     }
-    float tempMeas = htu21df.readTemperature() - corrTemp;
-    float humMeas = htu21df.readHumidity() - corrHumi;
-    curHumi += humMeas;
-    nextHumi += humMeas;
-    curTemp += tempMeas;
-    nextTemp += tempMeas;
+    updateSensorValues();
+    postValuesToServer(corrTemp + curTemp / lenWindow, corrHumi + curHumi / lenWindow, "SZ");
+  }
 
-    sqHumi += humMeas * humMeas;
-    nextSqHumi += humMeas * humMeas;
-    sqTemp += tempMeas * tempMeas;
-    nextSqTemp += tempMeas * tempMeas;
-    cntElem++;
-    if (cntElem == lenWindow / 2) {
-      curTemp = nextTemp;
-      curHumi = nextHumi;
-      nextTemp = tempMeas;
-      nextHumi = humMeas;
-      sqTemp = nextSqTemp;
-      sqHumi = nextSqHumi;
-      nextSqTemp = tempMeas * tempMeas;
-      nextSqHumi = humMeas * humMeas;
-    } else if (cntElem == lenWindow) {
-
-      Serial.print("T: ");
-      Serial.print(corrTemp + curTemp / lenWindow);
-      Serial.print(" +- ");
-      Serial.print(sqrt((sqTemp - curTemp * curTemp / lenWindow) / (lenWindow - 1)));
-
-      Serial.print(" H: ");
-      Serial.print(corrHumi + curHumi / lenWindow);
-      Serial.print(" +- ");
-      Serial.println(sqrt((sqHumi - curHumi * curHumi / lenWindow) / (lenWindow - 1)));
-
-
-      Serial.println("------------------");
-      cntElem = 1;
-      curTemp = nextTemp;
-      curHumi = nextHumi;
-      nextTemp = tempMeas;
-      nextHumi = tempMeas;
-      sqTemp = nextSqTemp;
-      sqHumi = nextSqHumi;
-      nextSqTemp = tempMeas * tempMeas;
-      nextSqHumi = humMeas * humMeas;
+  if (Serial.available()) {
+    char controlMsg = Serial.read();
+    if (controlMsg == 'v') {
+      outputVerboseTemp = !outputVerboseTemp;
     }
   }
 
@@ -226,23 +189,75 @@ void loop() {
   }
 }
 
+void postValuesToServer(float T, float Hum, const char* location) {
+  if (executePost) {
+    // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
+    String str = fillQuery(T, location, 'g');
+    String req = "POST " + PATH_NAME + str + " HTTP/1.1";
+    Serial.println(req);
+    client.println(req);
+    closeRESTrequest();
+    executePost = false;
+  }
+}
+
+void updateSensorValues() {
+  float tempMeas = htu21df.readTemperature() - corrTemp;
+  float humMeas = htu21df.readHumidity() - corrHumi;
+  curHumi += humMeas;
+  nextHumi += humMeas;
+  curTemp += tempMeas;
+  nextTemp += tempMeas;
+
+  sqHumi += humMeas * humMeas;
+  nextSqHumi += humMeas * humMeas;
+  sqTemp += tempMeas * tempMeas;
+  nextSqTemp += tempMeas * tempMeas;
+  cntElem++;
+  if (cntElem == lenWindow / 2) {
+    curTemp = nextTemp;
+    curHumi = nextHumi;
+    nextTemp = tempMeas;
+    nextHumi = humMeas;
+    sqTemp = nextSqTemp;
+    sqHumi = nextSqHumi;
+    nextSqTemp = tempMeas * tempMeas;
+    nextSqHumi = humMeas * humMeas;
+  } else if (cntElem == lenWindow) {
+    executePost = true;
+    Serial.print("T: ");
+    Serial.print(corrTemp + curTemp / lenWindow);
+    Serial.print(" +- ");
+    Serial.print(sqrt((sqTemp - curTemp * curTemp / lenWindow) / (lenWindow - 1)));
+
+    Serial.print(" H: ");
+    Serial.print(corrHumi + curHumi / lenWindow);
+    Serial.print(" +- ");
+    Serial.println(sqrt((sqHumi - curHumi * curHumi / lenWindow) / (lenWindow - 1)));
+
+
+    Serial.println("------------------");
+
+    cntElem = 1;
+    curTemp = nextTemp;
+    curHumi = nextHumi;
+    nextTemp = tempMeas;
+    nextHumi = tempMeas;
+    sqTemp = nextSqTemp;
+    sqHumi = nextSqHumi;
+    nextSqTemp = tempMeas * tempMeas;
+    nextSqHumi = humMeas * humMeas;
+  }
+}
+
 boolean reconnect() {
   return client.connectSSL(HOST_NAME, 443);
 }
 
-void testRESTGet() {
-  long curMillis = millis();
-  if ((curMillis - previousMillisTestGet) > intervalTestGet) {
-    previousMillisTestGet = curMillis;
-    Serial.println("sending GET request to server : " + String(getURL));
-    client.println("GET " + String(getURL) + " HTTP/1.1");
-    closeRESTrequest();
-  }
-}
-
 void closeRESTrequest() {
   client.println("Host: " + String(HOST_NAME));
-  client.println("Authorization: Basic bG9nZ2VyMTovN1l5MFxyUTYzaThyKno0UQ==");
+  client.print("Authorization: Basic ");
+  client.println(BASICAUTH);
   client.println("Connection: close");
   client.println();
 }
@@ -259,16 +274,7 @@ void switchLed() {
   digitalWrite(LED_BUILTIN, ledState);
 }
 
-void postToServer() {
-  switchLed();
-  String str = fillQuery("2022-01-19%2011:30:00", 303000, "SZ", 'b');
-  String req = "POST " + PATH_NAME + str + " HTTP/1.1";
-  Serial.println(req);
-  client.println(req);
-  closeRESTrequest();
-}
-
-String fillQuery(const char dateString[], long tempMilli, const char loc[], char state) {
+String fillQuery(long tempMilli, const char loc[], char state) {
   char* retVal = new char[(255 + strlen(queryTemplate))];
   sprintf(retVal, queryTemplate, tempMilli, loc, state);
   String retStr = String(retVal);
