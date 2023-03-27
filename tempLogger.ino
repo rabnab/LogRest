@@ -189,10 +189,17 @@ void loop() {
   }
 }
 
+int celsiusTomilliKelvin(float T) {
+  //round to nearest milliKelvin (by addign 0.5)
+  return 0.5+1000*(T+273.15);
+}
+
 void postValuesToServer(float T, float Hum, const char* location) {
   if (executePost) {
     // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
-    String str = fillQuery(T, location, 'g');
+    
+    
+    String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
     String req = "POST " + PATH_NAME + str + " HTTP/1.1";
     Serial.println(req);
     client.println(req);
