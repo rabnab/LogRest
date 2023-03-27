@@ -32,10 +32,11 @@ unsigned long previousMillisInfo = 0;       //will store last time Wi-Fi informa
 unsigned long previousMillisLED = 0;        // will store the last time LED was updated
 unsigned long previousMillisReconnect = 0;  // will store the last time that HTTP-connection was reconnected;
 const int intervalInfo = 500;               // interval at which to update the board information
-const int intervalTestGet = 5000;           // interval at which to send GET request
+const int lenWindow = 30;
+// const int intervalTestGet = 5000;           // interval at which to send GET request
 const int reconnectInterval = 5000;
 
-unsigned long previousMillisTestGet = 0;
+// unsigned long previousMillisTestGet = 0;
 
 float curTemp = 0;
 float curHumi = 0;
@@ -48,8 +49,6 @@ float nextSqHumi = 0;
 
 float corrTemp = 25;
 float corrHumi = 50;
-
-const int lenWindow = 10;
 
 int cnt = 0;
 int cntElem = 0;
@@ -177,6 +176,7 @@ void loop() {
     if (!client.connected()) {
       Serial.println();
       Serial.println("disconnecting from server.");
+      client.flush();
       client.stop();
 
       // try to reconnect
@@ -186,25 +186,6 @@ void loop() {
       };
       Serial.println("connection reestablished");
     }
-  }
-}
-
-int celsiusTomilliKelvin(float T) {
-  //round to nearest milliKelvin (by addign 0.5)
-  return 0.5+1000*(T+273.15);
-}
-
-void postValuesToServer(float T, float Hum, const char* location) {
-  if (executePost) {
-    // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
-    
-    
-    String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
-    String req = "POST " + PATH_NAME + str + " HTTP/1.1";
-    Serial.println(req);
-    client.println(req);
-    closeRESTrequest();
-    executePost = false;
   }
 }
 
@@ -254,6 +235,25 @@ void updateSensorValues() {
     sqHumi = nextSqHumi;
     nextSqTemp = tempMeas * tempMeas;
     nextSqHumi = humMeas * humMeas;
+  }
+}
+
+int celsiusTomilliKelvin(float T) {
+  //round to nearest milliKelvin (by addign 0.5)
+  return 0.5+1000*(T+273.15);
+}
+
+void postValuesToServer(float T, float Hum, const char* location) {
+  if (executePost) {
+    // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
+    
+    
+    String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
+    String req = "POST " + PATH_NAME + str + " HTTP/1.1";
+    Serial.println(req);
+    client.println(req);
+    closeRESTrequest();
+    executePost = false;
   }
 }
 
