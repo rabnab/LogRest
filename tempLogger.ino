@@ -66,6 +66,8 @@ void setup() {
 
   // set the LED as output
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+
   // attempt to connect to Wi-Fi network:
   Serial.print("Attempting to connect to network: ");
   Serial.print(ssid);
@@ -79,18 +81,8 @@ void setup() {
 
 
 
-  while (status != WL_CONNECTED) {
-    Serial.print(".");
-    // Connect to WPA/WPA2 network:
-    status = WiFi.begin(ssid, psk);
+  initializeWiFi();
 
-    if (status != WL_CONNECTED) {
-      Serial.print("Reason code: ");
-      Serial.println(WiFi.reasonCode());
-    }
-    // wait 5 seconds for connection:
-    delay(5000);
-  }
   Serial.println();
   // you're connected now, so print out the data:
   Serial.println("You're connected to the network");
@@ -134,6 +126,21 @@ void initializeTemp() {
 }
 
 
+void initializeWiFi(){
+  while (status != WL_CONNECTED) {
+    Serial.print(".");
+    // Connect to WPA/WPA2 network:
+    status = WiFi.begin(ssid, psk);
+
+    if (status != WL_CONNECTED) {
+      Serial.print("Reason code: ");
+      Serial.println(WiFi.reasonCode());
+    }
+    // wait 5 seconds for connection:
+    delay(5000);
+  }
+}
+
 void outputPressTempSensors() {
 
   Serial.print(" --- T2: ");
@@ -150,7 +157,7 @@ void loop() {
   // check if the time after the last update is bigger the interval
   if (currentMillisInfo - previousMillisInfo >= intervalInfo) {
     previousMillisInfo = currentMillisInfo;
-    switchLed();
+    //switchLed();
     if (outputVerboseTemp) {
       outputPressTempSensors();
     }
@@ -165,14 +172,22 @@ void loop() {
     }
   }
 
-  while (client.available()) {
+
+
+  while ( client.available()) {
     char c = client.read();
-    Serial.write(c);
+    if(outputVerboseTemp) Serial.write(c);
   }
 
   if ((currentMillisInfo - previousMillisReconnect) > reconnectInterval) {
     previousMillisReconnect = currentMillisInfo;
     // if the server's disconnected, stop the client:
+
+    if (WiFi.status() != WL_CONNECTED){
+      initializeWiFi();
+    }
+
+
     if (!client.connected()) {
       Serial.println();
       Serial.println("disconnecting from server.");
@@ -258,6 +273,7 @@ void postValuesToServer(float T, float Hum, const char* location) {
 }
 
 boolean reconnect() {
+  client.stop();
   return client.connectSSL(HOST_NAME, 443);
 }
 
