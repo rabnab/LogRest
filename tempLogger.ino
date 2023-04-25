@@ -28,7 +28,7 @@ const int reconnectInterval = 5000;
 
 // switches controlling program flow
 boolean executePost = false;
-boolean outputVerboseTemp = false;
+boolean outputVerbose = false;
 
 // transient states
 int status = WL_IDLE_STATUS; // the Wi-Fi radio's status
@@ -39,9 +39,7 @@ unsigned long previousMillisInfo = 0;      // will store last time Wi-Fi informa
 unsigned long previousMillisLED = 0;       // will store the last time LED was updated
 unsigned long previousMillisReconnect = 0; // will store the last time that HTTP-connection was reconnected;
 
-// counters
-int cnt = 0;
-int cntElem = 0;
+
 // unsigned long previousMillisTestGet = 0;
 typedef struct sensordata_t
 {
@@ -198,7 +196,7 @@ void loop()
   {
     previousMillisInfo = currentMillisInfo;
     // switchLed();
-    if (outputVerboseTemp)
+    if (outputVerbose)
     {
       outputPressTempSensors();
     }
@@ -211,14 +209,14 @@ void loop()
     char controlMsg = Serial.read();
     if (controlMsg == 'v')
     {
-      outputVerboseTemp = !outputVerboseTemp;
+      outputVerbose = !outputVerbose;
     }
   }
 
   while (client.available())
   {
     char c = client.read();
-    if (outputVerboseTemp)
+    if (outputVerbose)
       Serial.write(c);
   }
 
