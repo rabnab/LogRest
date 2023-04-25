@@ -1,7 +1,5 @@
 #include <Arduino_LSM6DS3.h>
 #include <Adafruit_Sensor.h>
-// #include <Adafruit_BMP280.h>
-// #include "Adafruit_Si7021.h"
 #include <Adafruit_HTU21DF.h>
 #include <WiFiNINA.h>
 #include "config.h"
@@ -30,15 +28,15 @@ const int reconnectInterval = 5000;
 boolean executePost = false;
 boolean outputVerbose = false;
 
-// transient states
+// transient states and counter
 int status = WL_IDLE_STATUS; // the Wi-Fi radio's status
 int ledState = LOW;          // ledState used to set the LED
+int cntElem = 0;
 
 // various timers
 unsigned long previousMillisInfo = 0;      // will store last time Wi-Fi information was updated
 unsigned long previousMillisLED = 0;       // will store the last time LED was updated
 unsigned long previousMillisReconnect = 0; // will store the last time that HTTP-connection was reconnected;
-
 
 // unsigned long previousMillisTestGet = 0;
 typedef struct sensordata_t
