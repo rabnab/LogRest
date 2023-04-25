@@ -39,7 +39,7 @@ unsigned long previousMillisLED = 0;       // will store the last time LED was u
 unsigned long previousMillisReconnect = 0; // will store the last time that HTTP-connection was reconnected;
 
 // unsigned long previousMillisTestGet = 0;
-typedef struct sensordata_t
+typedef struct 
 {
   float temperature = 0;
   float humidity = 0;
@@ -48,10 +48,12 @@ typedef struct sensordata_t
 
   float corrTemperature = 25;
   float corrHumidity = 50;
-} sensordata_t__;
+} SensorData;
 
-sensordata_t cur;
-sensordata_t next;
+SensorData currentSensorContainer;
+SensorData transientSensorContainer;
+
+
 
 void setup()
 {
@@ -69,53 +71,47 @@ void setup()
   digitalWrite(LED_BUILTIN, LOW);
 
   // attempt to connect to Wi-Fi network:
-  Serial.print("Attempting to connect to network: ");
-  Serial.print(ssid);
-  Serial.print(" ");
-
-  Serial1.print("netzwerk verbunden: ");
-  Serial1.print(ssid);
-  Serial1.print(" ");
+  print("Attempting to connect to network: ");
+  print(ssid);
+  print(" ");
 
   status = initializeWiFi(status);
 
-  Serial.println();
+  println("\0");
   // you're connected now, so print out the data:
-  Serial.println("You're connected to the network");
-  Serial1.println("You're connected to the network");
+  println("You're connected to the network");
+  println(("Wifi - Firmware: " + String(WiFi.firmwareVersion()) + " latest: " + String(WIFI_FIRMWARE_LATEST_VERSION)).c_str());
 
-  Serial.println("Wifi - Firmware: " + String(WiFi.firmwareVersion()) + " latest: " + String(WIFI_FIRMWARE_LATEST_VERSION));
-
-  Serial.println("---------------------------------------");
+  println("---------------------------------------");
 
   if (client.connectSSL(HOST_NAME, 443))
   {
     // if connected:
-    Serial.println("HTTP SSL connection established to server");
+    println("HTTP SSL connection established to server");
   }
   else
   { // if not connected:
 
-    Serial.println("connection to 'https://" + String(HOST_NAME) + "' failed");
+    println(("connection to 'https://" + String(HOST_NAME) + "' failed").c_str());
     while (1)
       ;
   }
 
   if (!htu21df.begin())
   {
-    Serial.println("Failed to initialize Temperature htu21df!");
+    println("Failed to initialize Temperature htu21df!");
     for (int i = 0; i < 10; i++)
     {
       delay(500);
       if (htu21df.begin())
       {
-        Serial.print("finally succes after ");
-        Serial.print(i);
-        Serial.println(" tries!");
+        print("finally succes after ");
+        print(i);
+        println(" tries!");
         i = 100;
       }
       else
-        Serial.println("try again");
+        println("try again");
     }
   }
   initializeTemp();
@@ -123,10 +119,34 @@ void setup()
 
 void initializeTemp()
 {
-  next.temperature = cur.temperature = (htu21df.readTemperature() - cur.corrTemperature);
-  next.humidity = cur.humidity = (htu21df.readHumidity() - cur.corrHumidity);
-  next.sqTemperature = cur.sqTemperature = cur.temperature * cur.temperature;
-  next.sqHumidiy = cur.sqHumidiy = cur.humidity * cur.humidity;
+  //initialize the currentSensorContainer
+  currentSensorContainer.temperature = (htu21df.readTemperature() - currentSensorContainer.corrTemperature);
+  currentSensorContainer.humidity = (htu21df.readHumidity() - currentSensorContainer.corrHumidity);
+  currentSensorContainer.sqTemperature = currentSensorContainer.temperature * currentSensorContainer.temperature;
+  currentSensorContainer.sqHumidiy = currentSensorContainer.humidity * currentSensorContainer.humidity;
+  //copy the transientSensorContainer by a deep copy
+  memcpy(&transientSensorContainer, &currentSensorContainer, sizeof(SensorData));
+}
+
+void  println( const char* str) {
+  Serial.println(str);
+  Serial1.println(str);
+}
+
+void  print( const char* str) {
+  Serial.print(str);
+  Serial1.print(str);
+}
+
+
+void  println(double v) {
+  Serial.print(v);
+  Serial1.print(v);
+}
+
+void print(double v){
+  Serial.print(v);
+  Serial1.print(v);
 }
 
 int initializeWiFi(int statIn)
@@ -134,24 +154,24 @@ int initializeWiFi(int statIn)
   int stat = statIn;
   while (stat != WL_CONNECTED)
   {
-    Serial.print("$");
+    print("$");
     // Connect to WPA/WPA2 network:
     stat = WiFi.begin(ssid, psk);
 
     if (stat != WL_CONNECTED)
     {
-      Serial.print("Reason code: ");
-      Serial.print(WiFi.reasonCode());
-      Serial.print(" ");
-      Serial.println(translateWifiState(stat));
+      print("Reason code: ");
+      print(WiFi.reasonCode());
+      print(" ");
+      println(translateWifiState(stat));
     }
-    // wait 5 seconds for connection:
-    delay(5000);
+    // wait 2 seconds for connection:
+    delay(2000);
   }
   return stat;
 }
 
-String translateWifiState(int state)
+const char* translateWifiState(int state)
 {
   switch (state)
   {
@@ -166,18 +186,21 @@ String translateWifiState(int state)
   case WL_DISCONNECTED:
     return "disconnected";
   default:
-    return String(state);
+    char buffer[10];
+
+     itoa(state, buffer,10);
+     return buffer;
   }
 }
 
 void outputPressTempSensors()
 {
 
-  Serial.print(" --- T2: ");
-  Serial.print(htu21df.readTemperature(), 2);
-  Serial.print(" ---  Humi: ");
-  Serial.print(htu21df.readHumidity(), 2);
-  Serial.println("%");
+  print(" --- T2: ");
+  print(htu21df.readTemperature());
+  print(" ---  Humi: ");
+  print(htu21df.readHumidity());
+  println("%");
 }
 
 void loop()
@@ -195,7 +218,7 @@ void loop()
       outputPressTempSensors();
     }
     updateSensorValues();
-    postValuesToServer(cur.corrTemperature + cur.temperature / lenWindow, cur.corrHumidity + cur.humidity / lenWindow, "SZ");
+    postValuesToServer(currentSensorContainer.corrTemperature + currentSensorContainer.temperature / lenWindow, currentSensorContainer.corrHumidity + currentSensorContainer.humidity / lenWindow, "SZ");
   }
 
   if (Serial.available())
@@ -222,16 +245,16 @@ void loop()
     int wifiState = WiFi.status();
     if (wifiState != WL_CONNECTED)
     {
-      Serial.print("wifi state: ");
-      Serial.println(translateWifiState(wifiState));
-      Serial.println("resetting wifi due to connection loss.");
+      print("wifi state: ");
+      println(translateWifiState(wifiState));
+      println("resetting wifi due to connection loss.");
       status = initializeWiFi(wifiState);
     }
 
     if (!client.connected())
     {
-      Serial.println();
-      Serial.println("disconnecting from server.");
+      println("\0");
+      println("disconnecting from server.");
       client.flush();
       client.stop();
 
@@ -239,62 +262,62 @@ void loop()
       while (!reconnect())
       {
         delay(2000);
-        Serial.print(".");
+        print(".");
       };
-      Serial.println("connection reestablished");
+      println("connection reestablished");
     }
   }
 }
 
 void updateSensorValues()
 {
-  float tempMeas = htu21df.readTemperature() - cur.corrTemperature;
-  float humMeas = htu21df.readHumidity() - cur.corrHumidity;
-  cur.humidity += humMeas;
-  next.humidity += humMeas;
-  cur.temperature += tempMeas;
-  next.temperature += tempMeas;
+  float tempMeas = htu21df.readTemperature() - currentSensorContainer.corrTemperature;
+  float humMeas = htu21df.readHumidity() - currentSensorContainer.corrHumidity;
+  currentSensorContainer.humidity += humMeas;
+  transientSensorContainer.humidity += humMeas;
+  currentSensorContainer.temperature += tempMeas;
+  transientSensorContainer.temperature += tempMeas;
 
-  cur.sqHumidiy += humMeas * humMeas;
-  next.sqHumidiy += humMeas * humMeas;
-  cur.sqTemperature += tempMeas * tempMeas;
-  next.sqTemperature += tempMeas * tempMeas;
+  currentSensorContainer.sqHumidiy += humMeas * humMeas;
+  transientSensorContainer.sqHumidiy += humMeas * humMeas;
+  currentSensorContainer.sqTemperature += tempMeas * tempMeas;
+  transientSensorContainer.sqTemperature += tempMeas * tempMeas;
   cntElem++;
   if (cntElem == lenWindow / 2)
   {
-    cur.temperature = next.temperature;
-    cur.humidity = next.humidity;
-    next.temperature = tempMeas;
-    next.humidity = humMeas;
-    cur.sqTemperature = next.sqTemperature;
-    cur.sqHumidiy = next.sqHumidiy;
-    next.sqTemperature = tempMeas * tempMeas;
-    next.sqHumidiy = humMeas * humMeas;
+    currentSensorContainer.temperature = transientSensorContainer.temperature;
+    currentSensorContainer.humidity = transientSensorContainer.humidity;
+    transientSensorContainer.temperature = tempMeas;
+    transientSensorContainer.humidity = humMeas;
+    currentSensorContainer.sqTemperature = transientSensorContainer.sqTemperature;
+    currentSensorContainer.sqHumidiy = transientSensorContainer.sqHumidiy;
+    transientSensorContainer.sqTemperature = tempMeas * tempMeas;
+    transientSensorContainer.sqHumidiy = humMeas * humMeas;
   }
   else if (cntElem == lenWindow)
   {
     executePost = true;
-    Serial.print("T: ");
-    Serial.print(cur.corrTemperature + cur.temperature / lenWindow);
-    Serial.print(" +- ");
-    Serial.print(sqrt((cur.sqTemperature - cur.temperature * cur.temperature / lenWindow) / (lenWindow - 1)));
+    print("T: ");
+    print(currentSensorContainer.corrTemperature + currentSensorContainer.temperature / lenWindow);
+    print(" +- ");
+    print(sqrt((currentSensorContainer.sqTemperature - currentSensorContainer.temperature * currentSensorContainer.temperature / lenWindow) / (lenWindow - 1)));
 
-    Serial.print(" H: ");
-    Serial.print(cur.corrHumidity + cur.humidity / lenWindow);
-    Serial.print(" +- ");
-    Serial.println(sqrt((cur.sqHumidiy - cur.humidity * cur.humidity / lenWindow) / (lenWindow - 1)));
+    print(" H: ");
+    print(currentSensorContainer.corrHumidity + currentSensorContainer.humidity / lenWindow);
+    print(" +- ");
+    println(sqrt((currentSensorContainer.sqHumidiy - currentSensorContainer.humidity * currentSensorContainer.humidity / lenWindow) / (lenWindow - 1)));
 
-    Serial.println("------------------");
+    println("------------------");
 
     cntElem = 1;
-    cur.temperature = next.temperature;
-    cur.humidity = next.humidity;
-    next.temperature = tempMeas;
-    next.humidity = tempMeas;
-    cur.sqTemperature = next.sqTemperature;
-    cur.sqHumidiy = next.sqHumidiy;
-    next.sqTemperature = tempMeas * tempMeas;
-    next.sqHumidiy = humMeas * humMeas;
+    currentSensorContainer.temperature = transientSensorContainer.temperature;
+    currentSensorContainer.humidity = transientSensorContainer.humidity;
+    transientSensorContainer.temperature = tempMeas;
+    transientSensorContainer.humidity = tempMeas;
+    currentSensorContainer.sqTemperature = transientSensorContainer.sqTemperature;
+    currentSensorContainer.sqHumidiy = transientSensorContainer.sqHumidiy;
+    transientSensorContainer.sqTemperature = tempMeas * tempMeas;
+    transientSensorContainer.sqHumidiy = humMeas * humMeas;
   }
 }
 
@@ -312,7 +335,7 @@ void postValuesToServer(float T, float Hum, const char *location)
 
     String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
     String req = "POST " + PATH_NAME + str + " HTTP/1.1";
-    Serial.println(req);
+    println(req.c_str());
     client.println(req);
     closeRESTrequest();
     executePost = false;
