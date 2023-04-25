@@ -41,17 +41,13 @@ unsigned long previousMillisReconnect = 0; // will store the last time that HTTP
 // unsigned long previousMillisTestGet = 0;
 typedef struct sensordata_t
 {
-  float curTemp = 0;
-  float curHumi = 0;
-  float sqTemp = 0;
-  float sqHumi = 0;
-  float nextTemp = 0;
-  float nextHumi = 0;
-  float nextSqTemp = 0;
-  float nextSqHumi = 0;
+  float temperature = 0;
+  float humidity = 0;
+  float sqTemperature = 0;
+  float sqHumidiy = 0;
 
-  float corrTemp = 25;
-  float corrHumi = 50;
+  float corrTemperature = 25;
+  float corrHumidity = 50;
 } sensordata_t__;
 
 sensordata_t cur;
@@ -127,10 +123,10 @@ void setup()
 
 void initializeTemp()
 {
-  next.nextTemp = cur.curTemp = (htu21df.readTemperature() - cur.corrTemp);
-  next.nextHumi = cur.curHumi = (htu21df.readHumidity() - cur.corrHumi);
-  next.nextSqTemp = cur.sqTemp = cur.curTemp * cur.curTemp;
-  next.nextSqHumi = cur.sqHumi = cur.curHumi * cur.curHumi;
+  next.temperature = cur.temperature = (htu21df.readTemperature() - cur.corrTemperature);
+  next.humidity = cur.humidity = (htu21df.readHumidity() - cur.corrHumidity);
+  next.sqTemperature = cur.sqTemperature = cur.temperature * cur.temperature;
+  next.sqHumidiy = cur.sqHumidiy = cur.humidity * cur.humidity;
 }
 
 int initializeWiFi(int statIn)
@@ -199,7 +195,7 @@ void loop()
       outputPressTempSensors();
     }
     updateSensorValues();
-    postValuesToServer(cur.corrTemp + cur.curTemp / lenWindow, cur.corrHumi + cur.curHumi / lenWindow, "SZ");
+    postValuesToServer(cur.corrTemperature + cur.temperature / lenWindow, cur.corrHumidity + cur.humidity / lenWindow, "SZ");
   }
 
   if (Serial.available())
@@ -252,53 +248,53 @@ void loop()
 
 void updateSensorValues()
 {
-  float tempMeas = htu21df.readTemperature() - cur.corrTemp;
-  float humMeas = htu21df.readHumidity() - cur.corrHumi;
-  cur.curHumi += humMeas;
-  next.nextHumi += humMeas;
-  cur.curTemp += tempMeas;
-  next.nextTemp += tempMeas;
+  float tempMeas = htu21df.readTemperature() - cur.corrTemperature;
+  float humMeas = htu21df.readHumidity() - cur.corrHumidity;
+  cur.humidity += humMeas;
+  next.humidity += humMeas;
+  cur.temperature += tempMeas;
+  next.temperature += tempMeas;
 
-  cur.sqHumi += humMeas * humMeas;
-  next.nextSqHumi += humMeas * humMeas;
-  cur.sqTemp += tempMeas * tempMeas;
-  next.nextSqTemp += tempMeas * tempMeas;
+  cur.sqHumidiy += humMeas * humMeas;
+  next.sqHumidiy += humMeas * humMeas;
+  cur.sqTemperature += tempMeas * tempMeas;
+  next.sqTemperature += tempMeas * tempMeas;
   cntElem++;
   if (cntElem == lenWindow / 2)
   {
-    cur.curTemp = next.nextTemp;
-    cur.curHumi = next.nextHumi;
-    next.nextTemp = tempMeas;
-    next.nextHumi = humMeas;
-    cur.sqTemp = next.nextSqTemp;
-    cur.sqHumi = next.nextSqHumi;
-    next.nextSqTemp = tempMeas * tempMeas;
-    next.nextSqHumi = humMeas * humMeas;
+    cur.temperature = next.temperature;
+    cur.humidity = next.humidity;
+    next.temperature = tempMeas;
+    next.humidity = humMeas;
+    cur.sqTemperature = next.sqTemperature;
+    cur.sqHumidiy = next.sqHumidiy;
+    next.sqTemperature = tempMeas * tempMeas;
+    next.sqHumidiy = humMeas * humMeas;
   }
   else if (cntElem == lenWindow)
   {
     executePost = true;
     Serial.print("T: ");
-    Serial.print(cur.corrTemp + cur.curTemp / lenWindow);
+    Serial.print(cur.corrTemperature + cur.temperature / lenWindow);
     Serial.print(" +- ");
-    Serial.print(sqrt((cur.sqTemp - cur.curTemp * cur.curTemp / lenWindow) / (lenWindow - 1)));
+    Serial.print(sqrt((cur.sqTemperature - cur.temperature * cur.temperature / lenWindow) / (lenWindow - 1)));
 
     Serial.print(" H: ");
-    Serial.print(cur.corrHumi + cur.curHumi / lenWindow);
+    Serial.print(cur.corrHumidity + cur.humidity / lenWindow);
     Serial.print(" +- ");
-    Serial.println(sqrt((cur.sqHumi - cur.curHumi * cur.curHumi / lenWindow) / (lenWindow - 1)));
+    Serial.println(sqrt((cur.sqHumidiy - cur.humidity * cur.humidity / lenWindow) / (lenWindow - 1)));
 
     Serial.println("------------------");
 
     cntElem = 1;
-    cur.curTemp = next.nextTemp;
-    cur.curHumi = next.nextHumi;
-    next.nextTemp = tempMeas;
-    next.nextHumi = tempMeas;
-    cur.sqTemp = next.nextSqTemp;
-    cur.sqHumi = next.nextSqHumi;
-    next.nextSqTemp = tempMeas * tempMeas;
-    next.nextSqHumi = humMeas * humMeas;
+    cur.temperature = next.temperature;
+    cur.humidity = next.humidity;
+    next.temperature = tempMeas;
+    next.humidity = tempMeas;
+    cur.sqTemperature = next.sqTemperature;
+    cur.sqHumidiy = next.sqHumidiy;
+    next.sqTemperature = tempMeas * tempMeas;
+    next.sqHumidiy = humMeas * humMeas;
   }
 }
 
