@@ -1,68 +1,76 @@
 #include <Arduino_LSM6DS3.h>
 #include <Adafruit_Sensor.h>
 // #include <Adafruit_BMP280.h>
-//#include "Adafruit_Si7021.h"
+// #include "Adafruit_Si7021.h"
 #include <Adafruit_HTU21DF.h>
+#include <WiFiNINA.h>
 #include "config.h"
 
-#include <WiFiNINA.h>
-
-
-Adafruit_HTU21DF htu21df = Adafruit_HTU21DF();  // I2C
-
-const float LAM = 0.05;
-
-int plusThreshold = 30, minusThreshold = -30;
-
-boolean outputVerboseTemp = false;
-
-char ssid[] = WIFI_SSID;
-char psk[] = WIFI_PWD;
-
 WiFiClient client;
+Adafruit_HTU21DF htu21df = Adafruit_HTU21DF(); // I2C
+const char HOST_NAME[] = THEHOST;
+const char ssid[] = WIFI_SSID;
+const char psk[] = WIFI_PWD;
 
-char HOST_NAME[] = THEHOST;
-String PATH_NAME = "/temperature";  // change your EVENT-NAME and YOUR-KEY
+const String PATH_NAME = "/temperature";
 const char getURL[] = "/temperature?loc=SRi/keh&lb=1&ub=10000";
 const char queryTemplate[] = "?y=%ld&loc=%s&s=%c";
 
-int status = WL_IDLE_STATUS;                // the Wi-Fi radio's status
-int ledState = LOW;                         //ledState used to set the LED
-unsigned long previousMillisInfo = 0;       //will store last time Wi-Fi information was updated
-unsigned long previousMillisLED = 0;        // will store the last time LED was updated
-unsigned long previousMillisReconnect = 0;  // will store the last time that HTTP-connection was reconnected;
-const int intervalInfo = 500;               // interval at which to update the board information
+// constants for calculating the sensor values
+const float LAM = 0.05;
 const int lenWindow = 30;
-// const int intervalTestGet = 5000;           // interval at which to send GET request
+const int plusThreshold = 30;
+const int minusThreshold = -30;
+
+// interval constants
+const int intervalInfo = 500; // interval at which to update the board information
 const int reconnectInterval = 5000;
 
-// unsigned long previousMillisTestGet = 0;
+// switches controlling program flow
+boolean executePost = false;
+boolean outputVerboseTemp = false;
 
-float curTemp = 0;
-float curHumi = 0;
-float sqTemp = 0;
-float sqHumi = 0;
-float nextTemp = 0;
-float nextHumi = 0;
-float nextSqTemp = 0;
-float nextSqHumi = 0;
+// transient states
+int status = WL_IDLE_STATUS; // the Wi-Fi radio's status
+int ledState = LOW;          // ledState used to set the LED
 
-float corrTemp = 25;
-float corrHumi = 50;
+// various timers
+unsigned long previousMillisInfo = 0;      // will store last time Wi-Fi information was updated
+unsigned long previousMillisLED = 0;       // will store the last time LED was updated
+unsigned long previousMillisReconnect = 0; // will store the last time that HTTP-connection was reconnected;
 
+// counters
 int cnt = 0;
 int cntElem = 0;
-boolean executePost = false;
+// unsigned long previousMillisTestGet = 0;
+typedef struct sensordata_t
+{
+  float curTemp = 0;
+  float curHumi = 0;
+  float sqTemp = 0;
+  float sqHumi = 0;
+  float nextTemp = 0;
+  float nextHumi = 0;
+  float nextSqTemp = 0;
+  float nextSqHumi = 0;
 
-void setup() {
+  float corrTemp = 25;
+  float corrHumi = 50;
+} sensordata_t__;
+
+sensordata_t cur;
+sensordata_t next;
+
+void setup()
+{
   // put your setup code here, to run once:
-  //Initialize serial and wait for port to open:
+  // Initialize serial and wait for port to open:
   Serial1.begin(9600);
 
   Serial.begin(9600);
   delay(1000);
-  //while (!Serial);
-  //while(!Serial1);
+  // while (!Serial);
+  // while(!Serial1);
 
   // set the LED as output
   pinMode(LED_BUILTIN, OUTPUT);
@@ -77,11 +85,7 @@ void setup() {
   Serial1.print(ssid);
   Serial1.print(" ");
 
-
-
-
-
-  initializeWiFi();
+  status = initializeWiFi(status);
 
   Serial.println();
   // you're connected now, so print out the data:
@@ -92,56 +96,90 @@ void setup() {
 
   Serial.println("---------------------------------------");
 
-  if (client.connectSSL(HOST_NAME, 443)) {
+  if (client.connectSSL(HOST_NAME, 443))
+  {
     // if connected:
     Serial.println("HTTP SSL connection established to server");
-  } else {  // if not connected:
+  }
+  else
+  { // if not connected:
 
     Serial.println("connection to 'https://" + String(HOST_NAME) + "' failed");
     while (1)
       ;
   }
 
-  if (!htu21df.begin()) {
+  if (!htu21df.begin())
+  {
     Serial.println("Failed to initialize Temperature htu21df!");
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
       delay(500);
-      if (htu21df.begin()) {
+      if (htu21df.begin())
+      {
         Serial.print("finally succes after ");
         Serial.print(i);
         Serial.println(" tries!");
         i = 100;
-      } else
+      }
+      else
         Serial.println("try again");
     }
   }
   initializeTemp();
 }
 
-void initializeTemp() {
-  nextTemp = curTemp = (htu21df.readTemperature() - corrTemp);
-  nextHumi = curHumi = (htu21df.readHumidity() - corrHumi);
-  nextSqTemp = sqTemp = curTemp * curTemp;
-  nextSqHumi = sqHumi = curHumi * curHumi;
+void initializeTemp()
+{
+  next.nextTemp = cur.curTemp = (htu21df.readTemperature() - cur.corrTemp);
+  next.nextHumi = cur.curHumi = (htu21df.readHumidity() - cur.corrHumi);
+  next.nextSqTemp = cur.sqTemp = cur.curTemp * cur.curTemp;
+  next.nextSqHumi = cur.sqHumi = cur.curHumi * cur.curHumi;
 }
 
-
-void initializeWiFi(){
-  while (status != WL_CONNECTED) {
-    Serial.print(".");
+int initializeWiFi(int statIn)
+{
+  int stat = statIn;
+  while (stat != WL_CONNECTED)
+  {
+    Serial.print("$");
     // Connect to WPA/WPA2 network:
-    status = WiFi.begin(ssid, psk);
+    stat = WiFi.begin(ssid, psk);
 
-    if (status != WL_CONNECTED) {
+    if (stat != WL_CONNECTED)
+    {
       Serial.print("Reason code: ");
-      Serial.println(WiFi.reasonCode());
+      Serial.print(WiFi.reasonCode());
+      Serial.print(" ");
+      Serial.println(translateWifiState(stat));
     }
     // wait 5 seconds for connection:
     delay(5000);
   }
+  return stat;
 }
 
-void outputPressTempSensors() {
+String translateWifiState(int state)
+{
+  switch (state)
+  {
+  case WL_CONNECTED:
+    return "connected";
+  case WL_IDLE_STATUS:
+    return "idle";
+  case WL_CONNECTION_LOST:
+    return "connection lost";
+  case WL_CONNECT_FAILED:
+    return "connection failed";
+  case WL_DISCONNECTED:
+    return "disconnected";
+  default:
+    return String(state);
+  }
+}
+
+void outputPressTempSensors()
+{
 
   Serial.print(" --- T2: ");
   Serial.print(htu21df.readTemperature(), 2);
@@ -150,52 +188,64 @@ void outputPressTempSensors() {
   Serial.println("%");
 }
 
-void loop() {
+void loop()
+{
 
   unsigned long currentMillisInfo = millis();
 
   // check if the time after the last update is bigger the interval
-  if (currentMillisInfo - previousMillisInfo >= intervalInfo) {
+  if (currentMillisInfo - previousMillisInfo >= intervalInfo)
+  {
     previousMillisInfo = currentMillisInfo;
-    //switchLed();
-    if (outputVerboseTemp) {
+    // switchLed();
+    if (outputVerboseTemp)
+    {
       outputPressTempSensors();
     }
     updateSensorValues();
-    postValuesToServer(corrTemp + curTemp / lenWindow, corrHumi + curHumi / lenWindow, "SZ");
+    postValuesToServer(cur.corrTemp + cur.curTemp / lenWindow, cur.corrHumi + cur.curHumi / lenWindow, "SZ");
   }
 
-  if (Serial.available()) {
+  if (Serial.available())
+  {
     char controlMsg = Serial.read();
-    if (controlMsg == 'v') {
+    if (controlMsg == 'v')
+    {
       outputVerboseTemp = !outputVerboseTemp;
     }
   }
 
-
-
-  while ( client.available()) {
+  while (client.available())
+  {
     char c = client.read();
-    if(outputVerboseTemp) Serial.write(c);
+    if (outputVerboseTemp)
+      Serial.write(c);
   }
 
-  if ((currentMillisInfo - previousMillisReconnect) > reconnectInterval) {
+  if ((currentMillisInfo - previousMillisReconnect) > reconnectInterval)
+  {
     previousMillisReconnect = currentMillisInfo;
     // if the server's disconnected, stop the client:
 
-    if (WiFi.status() != WL_CONNECTED){
-      initializeWiFi();
+    int wifiState = WiFi.status();
+    if (wifiState != WL_CONNECTED)
+    {
+      Serial.print("wifi state: ");
+      Serial.println(translateWifiState(wifiState));
+      Serial.println("resetting wifi due to connection loss.");
+      status = initializeWiFi(wifiState);
     }
 
-
-    if (!client.connected()) {
+    if (!client.connected())
+    {
       Serial.println();
       Serial.println("disconnecting from server.");
       client.flush();
       client.stop();
 
       // try to reconnect
-      while (!reconnect()) {
+      while (!reconnect())
+      {
         delay(2000);
         Serial.print(".");
       };
@@ -204,65 +254,70 @@ void loop() {
   }
 }
 
-void updateSensorValues() {
-  float tempMeas = htu21df.readTemperature() - corrTemp;
-  float humMeas = htu21df.readHumidity() - corrHumi;
-  curHumi += humMeas;
-  nextHumi += humMeas;
-  curTemp += tempMeas;
-  nextTemp += tempMeas;
+void updateSensorValues()
+{
+  float tempMeas = htu21df.readTemperature() - cur.corrTemp;
+  float humMeas = htu21df.readHumidity() - cur.corrHumi;
+  cur.curHumi += humMeas;
+  next.nextHumi += humMeas;
+  cur.curTemp += tempMeas;
+  next.nextTemp += tempMeas;
 
-  sqHumi += humMeas * humMeas;
-  nextSqHumi += humMeas * humMeas;
-  sqTemp += tempMeas * tempMeas;
-  nextSqTemp += tempMeas * tempMeas;
+  cur.sqHumi += humMeas * humMeas;
+  next.nextSqHumi += humMeas * humMeas;
+  cur.sqTemp += tempMeas * tempMeas;
+  next.nextSqTemp += tempMeas * tempMeas;
   cntElem++;
-  if (cntElem == lenWindow / 2) {
-    curTemp = nextTemp;
-    curHumi = nextHumi;
-    nextTemp = tempMeas;
-    nextHumi = humMeas;
-    sqTemp = nextSqTemp;
-    sqHumi = nextSqHumi;
-    nextSqTemp = tempMeas * tempMeas;
-    nextSqHumi = humMeas * humMeas;
-  } else if (cntElem == lenWindow) {
+  if (cntElem == lenWindow / 2)
+  {
+    cur.curTemp = next.nextTemp;
+    cur.curHumi = next.nextHumi;
+    next.nextTemp = tempMeas;
+    next.nextHumi = humMeas;
+    cur.sqTemp = next.nextSqTemp;
+    cur.sqHumi = next.nextSqHumi;
+    next.nextSqTemp = tempMeas * tempMeas;
+    next.nextSqHumi = humMeas * humMeas;
+  }
+  else if (cntElem == lenWindow)
+  {
     executePost = true;
     Serial.print("T: ");
-    Serial.print(corrTemp + curTemp / lenWindow);
+    Serial.print(cur.corrTemp + cur.curTemp / lenWindow);
     Serial.print(" +- ");
-    Serial.print(sqrt((sqTemp - curTemp * curTemp / lenWindow) / (lenWindow - 1)));
+    Serial.print(sqrt((cur.sqTemp - cur.curTemp * cur.curTemp / lenWindow) / (lenWindow - 1)));
 
     Serial.print(" H: ");
-    Serial.print(corrHumi + curHumi / lenWindow);
+    Serial.print(cur.corrHumi + cur.curHumi / lenWindow);
     Serial.print(" +- ");
-    Serial.println(sqrt((sqHumi - curHumi * curHumi / lenWindow) / (lenWindow - 1)));
-
+    Serial.println(sqrt((cur.sqHumi - cur.curHumi * cur.curHumi / lenWindow) / (lenWindow - 1)));
 
     Serial.println("------------------");
 
     cntElem = 1;
-    curTemp = nextTemp;
-    curHumi = nextHumi;
-    nextTemp = tempMeas;
-    nextHumi = tempMeas;
-    sqTemp = nextSqTemp;
-    sqHumi = nextSqHumi;
-    nextSqTemp = tempMeas * tempMeas;
-    nextSqHumi = humMeas * humMeas;
+    cur.curTemp = next.nextTemp;
+    cur.curHumi = next.nextHumi;
+    next.nextTemp = tempMeas;
+    next.nextHumi = tempMeas;
+    cur.sqTemp = next.nextSqTemp;
+    cur.sqHumi = next.nextSqHumi;
+    next.nextSqTemp = tempMeas * tempMeas;
+    next.nextSqHumi = humMeas * humMeas;
   }
 }
 
-int celsiusTomilliKelvin(float T) {
-  //round to nearest milliKelvin (by addign 0.5)
-  return 0.5+1000*(T+273.15);
+int celsiusTomilliKelvin(float T)
+{
+  // round to nearest milliKelvin (by addign 0.5)
+  return 0.5 + 1000 * (T + 273.15);
 }
 
-void postValuesToServer(float T, float Hum, const char* location) {
-  if (executePost) {
+void postValuesToServer(float T, float Hum, const char *location)
+{
+  if (executePost)
+  {
     // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
-    
-    
+
     String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
     String req = "POST " + PATH_NAME + str + " HTTP/1.1";
     Serial.println(req);
@@ -272,12 +327,15 @@ void postValuesToServer(float T, float Hum, const char* location) {
   }
 }
 
-boolean reconnect() {
+boolean reconnect()
+{
   client.stop();
+  status = initializeWiFi(status);
   return client.connectSSL(HOST_NAME, 443);
 }
 
-void closeRESTrequest() {
+void closeRESTrequest()
+{
   client.println("Host: " + String(HOST_NAME));
   client.print("Authorization: Basic ");
   client.println(BASICAUTH);
@@ -285,11 +343,15 @@ void closeRESTrequest() {
   client.println();
 }
 
-void switchLed() {
+void switchLed()
+{
   // if the LED is off turn it on and vice-versa:
-  if (ledState == LOW) {
+  if (ledState == LOW)
+  {
     ledState = HIGH;
-  } else {
+  }
+  else
+  {
     ledState = LOW;
   }
 
@@ -297,8 +359,9 @@ void switchLed() {
   digitalWrite(LED_BUILTIN, ledState);
 }
 
-String fillQuery(long tempMilli, const char loc[], char state) {
-  char* retVal = new char[(255 + strlen(queryTemplate))];
+String fillQuery(long tempMilli, const char loc[], char state)
+{
+  char *retVal = new char[(255 + strlen(queryTemplate))];
   sprintf(retVal, queryTemplate, tempMilli, loc, state);
   String retStr = String(retVal);
   retStr.trim();
