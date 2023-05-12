@@ -10,7 +10,7 @@ const char HOST_NAME[] = THEHOST;
 const char ssid[] = WIFI_SSID;
 const char psk[] = WIFI_PWD;
 
-const String PATH_NAME = "/temperature";
+const char PATH_NAME[] = "/temperature";
 const char getURL[] = "/temperature?loc=SRi/keh&lb=1&ub=10000";
 const char queryTemplate[] = "?y=%ld&loc=%s&s=%c";
 
@@ -53,17 +53,24 @@ typedef struct
 SensorData currentSensorContainer;
 SensorData transientSensorContainer;
 
-
+//function prototypes
+void setup();
+void initializeTemp();
+int initializeWiFi(int statIn);
+const char *translateWifiState(int state);
+void println(const char *str);
+void print(const char *str);
+void println(double v);
+void print(double v);
 
 void setup()
 {
   // put your setup code here, to run once:
   // Initialize serial and wait for port to open:
   Serial1.begin(9600);
-
   Serial.begin(9600);
   delay(1000);
-  // while (!Serial);
+  // while (!Serial); 
   // while(!Serial1);
 
   // set the LED as output
@@ -78,10 +85,10 @@ void setup()
   status = initializeWiFi(status);
 
   println("\0");
+  char* msg=new char[255];
   // you're connected now, so print out the data:
-  println("You're connected to the network");
-  println(("Wifi - Firmware: " + String(WiFi.firmwareVersion()) + " latest: " + String(WIFI_FIRMWARE_LATEST_VERSION)).c_str());
-
+  snprintf(msg,255,"You're connected to the network\nWifi - Firmware: %s latest: %s",WiFi.firmwareVersion(),WIFI_FIRMWARE_LATEST_VERSION);
+  println(msg);
   println("---------------------------------------");
 
   if (client.connectSSL(HOST_NAME, 443))
@@ -91,8 +98,8 @@ void setup()
   }
   else
   { // if not connected:
-
-    println(("connection to 'https://" + String(HOST_NAME) + "' failed").c_str());
+    snprintf(msg, 255,"connection to 'https://%s' failed",HOST_NAME);
+    println(msg);
     while (1)
       ;
   }
@@ -105,7 +112,7 @@ void setup()
       delay(500);
       if (htu21df.begin())
       {
-        print("finally succes after ");
+        print("finally succeeded after ");
         print(i);
         println(" tries!");
         i = 100;
@@ -334,8 +341,9 @@ void postValuesToServer(float T, float Hum, const char *location)
     // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
 
     String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
-    String req = "POST " + PATH_NAME + str + " HTTP/1.1";
-    println(req.c_str());
+    char* req = new char[str.length()+14+255];
+    sprintf(req, "POST %s%s HTTP/1.1",PATH_NAME,str.c_str());
+    println(req);
     client.println(req);
     closeRESTrequest();
     executePost = false;
@@ -374,11 +382,35 @@ void switchLed()
   digitalWrite(LED_BUILTIN, ledState);
 }
 
-String fillQuery(long tempMilli, const char loc[], char state)
+char* fillQuery(long tempMilli, const char loc[], char state)
 {
   char *retVal = new char[(255 + strlen(queryTemplate))];
   sprintf(retVal, queryTemplate, tempMilli, loc, state);
-  String retStr = String(retVal);
-  retStr.trim();
-  return retStr;
+  trim(retVal);
+  return retVal;
+}
+
+void trim(char *str)
+{
+    if (str == NULL) return;
+    
+    char *start = str;
+    char *end = str + strlen(str) - 1;
+
+    // Find the first non-whitespace character
+    while (isspace(*start)) start++;
+
+    // Find the last non-whitespace character
+    while (isspace(*end) && end >= start) end--;
+
+    // Shift characters to the left to remove leading whitespace
+    int shift = start - str;
+    if (shift > 0) {
+        memmove(str, start, end - start + 2);  // Include the null terminator
+    } else {
+        shift = 0;
+    }
+
+    // Null-terminate the new string
+    *(str + (end - start + 1 - shift)) = '\0';
 }
