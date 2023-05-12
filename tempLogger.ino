@@ -320,7 +320,7 @@ void updateSensorValues()
     currentSensorContainer.temperature = transientSensorContainer.temperature;
     currentSensorContainer.humidity = transientSensorContainer.humidity;
     transientSensorContainer.temperature = tempMeas;
-    transientSensorContainer.humidity = tempMeas;
+    transientSensorContainer.humidity = humMeas;
     currentSensorContainer.sqTemperature = transientSensorContainer.sqTemperature;
     currentSensorContainer.sqHumidiy = transientSensorContainer.sqHumidiy;
     transientSensorContainer.sqTemperature = tempMeas * tempMeas;
