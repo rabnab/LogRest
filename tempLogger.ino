@@ -67,8 +67,8 @@ void setup()
 {
   // put your setup code here, to run once:
   // Initialize serial and wait for port to open:
-  Serial1.begin(9600);
-  Serial.begin(9600);
+  Serial1.begin(115200);
+  Serial.begin(115200);
   delay(1000);
   // while (!Serial); 
   // while(!Serial1);
