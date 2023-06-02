@@ -67,8 +67,8 @@ void setup()
 {
   // put your setup code here, to run once:
   // Initialize serial and wait for port to open:
-  Serial1.begin(115200);
-  Serial.begin(115200);
+  Serial1.begin(9600);
+  Serial.begin(9600);
   delay(1000);
   // while (!Serial); 
   // while(!Serial1);
@@ -85,7 +85,7 @@ void setup()
   status = initializeWiFi(status);
 
   println("\0");
-  char* msg=new char[255];
+  char msg[255];
   // you're connected now, so print out the data:
   snprintf(msg,255,"You're connected to the network\nWifi - Firmware: %s latest: %s",WiFi.firmwareVersion(),WIFI_FIRMWARE_LATEST_VERSION);
   println(msg);
@@ -100,8 +100,8 @@ void setup()
   { // if not connected:
     snprintf(msg, 255,"connection to 'https://%s' failed",HOST_NAME);
     println(msg);
-    while (1)
-      ;
+    //while (1)
+    //  ;
   }
 
   if (!htu21df.begin())
@@ -193,10 +193,7 @@ const char* translateWifiState(int state)
   case WL_DISCONNECTED:
     return "disconnected";
   default:
-    char buffer[10];
-
-     itoa(state, buffer,10);
-     return buffer;
+    return "unknown state";
   }
 }
 
@@ -339,10 +336,10 @@ void postValuesToServer(float T, float Hum, const char *location)
   if (executePost)
   {
     // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
-
-    String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
-    char* req = new char[str.length()+14+255];
-    sprintf(req, "POST %s%s HTTP/1.1",PATH_NAME,str.c_str());
+    char req[(255 + strlen(queryTemplate))];
+    fillQuery(req, celsiusTomilliKelvin(T), location, 'g');
+   
+    sprintf(req, "POST %s%s HTTP/1.1",PATH_NAME,req);
     println(req);
     client.println(req);
     closeRESTrequest();
@@ -382,12 +379,10 @@ void switchLed()
   digitalWrite(LED_BUILTIN, ledState);
 }
 
-char* fillQuery(long tempMilli, const char loc[], char state)
+void fillQuery(char *queryBuffer, long tempMilli, const char loc[], char state)
 {
-  char *retVal = new char[(255 + strlen(queryTemplate))];
-  sprintf(retVal, queryTemplate, tempMilli, loc, state);
-  trim(retVal);
-  return retVal;
+  sprintf(queryBuffer, queryTemplate, tempMilli, loc, state);
+  trim(queryBuffer);
 }
 
 void trim(char *str)
