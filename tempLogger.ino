@@ -4,7 +4,6 @@
 #include <WiFiNINA.h>
 #include "config.h"
 
-WiFiClient client;
 Adafruit_HTU21DF htu21df = Adafruit_HTU21DF(); // I2C
 const char HOST_NAME[] = THEHOST;
 const char ssid[] = WIFI_SSID;
@@ -90,19 +89,6 @@ void setup()
   snprintf(msg,255,"You're connected to the network\nWifi - Firmware: %s latest: %s",WiFi.firmwareVersion(),WIFI_FIRMWARE_LATEST_VERSION);
   println(msg);
   println("---------------------------------------");
-
-  if (client.connectSSL(HOST_NAME, 443))
-  {
-    // if connected:
-    println("HTTP SSL connection established to server");
-  }
-  else
-  { // if not connected:
-    snprintf(msg, 255,"connection to 'https://%s' failed",HOST_NAME);
-    println(msg);
-    while (1)
-      ;
-  }
 
   if (!htu21df.begin())
   {
@@ -237,12 +223,9 @@ void loop()
     }
   }
 
-  while (client.available())
-  {
-    char c = client.read();
-    if (outputVerbose)
-      Serial.write(c);
-  }
+  
+
+  
 
   if ((currentMillisInfo - previousMillisReconnect) > reconnectInterval)
   {
@@ -258,20 +241,8 @@ void loop()
       status = initializeWiFi(wifiState);
     }
 
-    if (!client.connected())
-    {
-      println("\0");
-      println("disconnecting from server.");
-      client.flush();
-      client.stop();
-
-      // try to reconnect
-      while (!reconnect())
-      {
-        delay(2000);
-        print(".");
-      };
-      println("connection reestablished");
+    if (outputMemory) {
+      display_freeram();
     }
   }
 }
@@ -344,26 +315,41 @@ void postValuesToServer(float T, float Hum, const char *location)
     char* req = new char[str.length()+14+255];
     sprintf(req, "POST %s%s HTTP/1.1",PATH_NAME,str.c_str());
     println(req);
-    client.println(req);
-    closeRESTrequest();
+    WiFiSSLClient client;
+    if (client.connectSSL(HOST_NAME, 443))
+    {
+      // if connected:
+      client.println(req);
+      client.println("Host: " + String(HOST_NAME));
+      client.print("Authorization: Basic ");
+      client.println(BASICAUTH);
+      client.println("Connection: close");
+      client.println();
+
+
+      delay(500);
+      boolean addNewLine=outputVerbose && client.available();
+      while (client.available())
+      {
+        char c = client.read();
+        if (outputVerbose)
+          Serial.write(c);
+      }
+      if (addNewLine){
+        Serial.write('\n');
+      }
+    }
+    else
+    { // if not connected:
+      char msg[255];
+      snprintf(msg, 255,"connection to 'https://%s' failed",HOST_NAME);
+      println(msg);
+      //while (1)
+      //  ;
+    }
+    client.stop();
     executePost = false;
   }
-}
-
-boolean reconnect()
-{
-  client.stop();
-  status = initializeWiFi(status);
-  return client.connectSSL(HOST_NAME, 443);
-}
-
-void closeRESTrequest()
-{
-  client.println("Host: " + String(HOST_NAME));
-  client.print("Authorization: Basic ");
-  client.println(BASICAUTH);
-  client.println("Connection: close");
-  client.println();
 }
 
 void switchLed()
