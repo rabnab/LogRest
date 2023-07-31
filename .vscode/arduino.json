@@ -2,5 +2,5 @@
     "sketch": "tempLogger.ino",
     "board": "arduino:samd:nano_33_iot",
     "port": "COM8",
-    "__output": "bin"
+    "output": "bin"
 }
