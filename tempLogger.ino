@@ -25,7 +25,11 @@ const int reconnectInterval = 5000;
 
 // switches controlling program flow
 boolean executePost = false;
+boolean outputMemory = false;
 boolean outputVerbose = false;
+
+//flag for first run
+boolean firstRun = true;
 
 // transient states and counter
 int status = WL_IDLE_STATUS; // the Wi-Fi radio's status
@@ -52,6 +56,9 @@ typedef struct
 SensorData currentSensorContainer;
 SensorData transientSensorContainer;
 
+//for memory measurement
+extern "C" char* sbrk(int incr);
+
 //function prototypes
 void setup();
 void initializeTemp();
@@ -61,6 +68,8 @@ void println(const char *str);
 void print(const char *str);
 void println(double v);
 void print(double v);
+int freeRam();
+void display_freeram();
 
 void setup()
 {
@@ -84,7 +93,7 @@ void setup()
   status = initializeWiFi(status);
 
   println("\0");
-  char* msg=new char[255];
+  char msg[255];
   // you're connected now, so print out the data:
   snprintf(msg,255,"You're connected to the network\nWifi - Firmware: %s latest: %s",WiFi.firmwareVersion(),WIFI_FIRMWARE_LATEST_VERSION);
   println(msg);
@@ -113,8 +122,10 @@ void setup()
 void initializeTemp()
 {
   //initialize the currentSensorContainer
-  currentSensorContainer.temperature = (htu21df.readTemperature() - currentSensorContainer.corrTemperature);
-  currentSensorContainer.humidity = (htu21df.readHumidity() - currentSensorContainer.corrHumidity);
+  // currentSensorContainer.temperature = (htu21df.readTemperature() - currentSensorContainer.corrTemperature);
+  // currentSensorContainer.humidity = (htu21df.readHumidity() - currentSensorContainer.corrHumidity);
+  currentSensorContainer.temperature = 0;
+  currentSensorContainer.humidity = 0;
   currentSensorContainer.sqTemperature = currentSensorContainer.temperature * currentSensorContainer.temperature;
   currentSensorContainer.sqHumidiy = currentSensorContainer.humidity * currentSensorContainer.humidity;
   //copy the transientSensorContainer by a deep copy
@@ -179,21 +190,25 @@ const char* translateWifiState(int state)
   case WL_DISCONNECTED:
     return "disconnected";
   default:
-    char buffer[10];
-
-     itoa(state, buffer,10);
-     return buffer;
+    return "unknown state";
   }
 }
 
 void outputPressTempSensors()
 {
-
+  float tAvg=getActualTemperatureAvg();
+  float hAvg=getActualHumidityAvg();
   print(" --- T2: ");
   print(htu21df.readTemperature());
-  print(" ---  Humi: ");
+  print("(");
+  print(tAvg);
+  print("=");
+  print(celsiusTomilliKelvin(tAvg));
+  print("mK) ---  Humi: ");
   print(htu21df.readHumidity());
-  println("%");
+  print("%(");
+  print(hAvg);
+  println(")");
 }
 
 void loop()
@@ -210,8 +225,8 @@ void loop()
     {
       outputPressTempSensors();
     }
-    updateSensorValues();
-    postValuesToServer(currentSensorContainer.corrTemperature + currentSensorContainer.temperature / lenWindow, currentSensorContainer.corrHumidity + currentSensorContainer.humidity / lenWindow, "SZ");
+    updateSensorValues(htu21df.readTemperature(), htu21df.readHumidity());
+    postValuesToServer(getActualTemperatureAvg(), getActualHumidityAvg(), "test");
   }
 
   if (Serial.available())
@@ -220,6 +235,8 @@ void loop()
     if (controlMsg == 'v')
     {
       outputVerbose = !outputVerbose;
+    } else if (controlMsg == 'm'){
+      outputMemory = !outputMemory;
     }
   }
 
@@ -247,56 +264,107 @@ void loop()
   }
 }
 
-void updateSensorValues()
+void updateSensorValues(float currentTemp, float currentHumi)
 {
-  float tempMeas = htu21df.readTemperature() - currentSensorContainer.corrTemperature;
-  float humMeas = htu21df.readHumidity() - currentSensorContainer.corrHumidity;
-  currentSensorContainer.humidity += humMeas;
-  transientSensorContainer.humidity += humMeas;
-  currentSensorContainer.temperature += tempMeas;
-  transientSensorContainer.temperature += tempMeas;
-
-  currentSensorContainer.sqHumidiy += humMeas * humMeas;
-  transientSensorContainer.sqHumidiy += humMeas * humMeas;
-  currentSensorContainer.sqTemperature += tempMeas * tempMeas;
-  transientSensorContainer.sqTemperature += tempMeas * tempMeas;
+  // float tempMeas = currentTemp - currentSensorContainer.corrTemperature;
+  // float humMeas = currentHumi - currentSensorContainer.corrHumidity;
   cntElem++;
-  if (cntElem == lenWindow / 2)
+  // int transElem=(cntElem+lenWindow/2);
+  int transElem = cntElem;
+  int curElem = (cntElem+lenWindow/2);
+  if (firstRun){
+    curElem=cntElem;
+  }
+  
+  float delta = currentTemp - currentSensorContainer.temperature;
+  currentSensorContainer.temperature += delta/curElem;
+  //now using updated temperature
+  float delta2 = currentTemp - currentSensorContainer.temperature;
+  currentSensorContainer.sqTemperature += delta*delta2;
+
+  delta = currentTemp - transientSensorContainer.temperature;
+  transientSensorContainer.temperature +=delta/transElem;
+  delta2 = currentTemp - transientSensorContainer.temperature;
+  transientSensorContainer.sqTemperature +=delta*delta2;
+
+  delta = currentHumi - currentSensorContainer.humidity;
+  currentSensorContainer.humidity += delta/curElem;
+  //now using updated temperature
+  delta2 = currentHumi - currentSensorContainer.humidity;
+  currentSensorContainer.sqHumidiy += delta*delta2;
+
+  delta = currentHumi - transientSensorContainer.humidity;
+  transientSensorContainer.humidity +=delta/transElem;
+  delta2 = currentHumi - transientSensorContainer.humidity;
+  transientSensorContainer.sqHumidiy +=delta*delta2;
+
+
+  // currentSensorContainer.humidity += humMeas;
+  // transientSensorContainer.humidity += humMeas;
+  // currentSensorContainer.temperature += tempMeas;
+  // transientSensorContainer.temperature += tempMeas;
+
+  // currentSensorContainer.sqHumidiy += humMeas * humMeas;
+  // transientSensorContainer.sqHumidiy += humMeas * humMeas;
+  // currentSensorContainer.sqTemperature += tempMeas * tempMeas;
+  // transientSensorContainer.sqTemperature += tempMeas * tempMeas;
+
+  if (cntElem == lenWindow / 2 && !firstRun)
   {
-    currentSensorContainer.temperature = transientSensorContainer.temperature;
-    currentSensorContainer.humidity = transientSensorContainer.humidity;
-    transientSensorContainer.temperature = tempMeas;
-    transientSensorContainer.humidity = humMeas;
-    currentSensorContainer.sqTemperature = transientSensorContainer.sqTemperature;
-    currentSensorContainer.sqHumidiy = transientSensorContainer.sqHumidiy;
-    transientSensorContainer.sqTemperature = tempMeas * tempMeas;
-    transientSensorContainer.sqHumidiy = humMeas * humMeas;
+    switchTransientToCurrent(currentTemp, currentHumi);
   }
   else if (cntElem == lenWindow)
   {
+    firstRun=false;
     executePost = true;
-    print("T: ");
-    print(currentSensorContainer.corrTemperature + currentSensorContainer.temperature / lenWindow);
-    print(" +- ");
-    print(sqrt((currentSensorContainer.sqTemperature - currentSensorContainer.temperature * currentSensorContainer.temperature / lenWindow) / (lenWindow - 1)));
-
-    print(" H: ");
-    print(currentSensorContainer.corrHumidity + currentSensorContainer.humidity / lenWindow);
-    print(" +- ");
-    println(sqrt((currentSensorContainer.sqHumidiy - currentSensorContainer.humidity * currentSensorContainer.humidity / lenWindow) / (lenWindow - 1)));
-
-    println("------------------");
-
-    cntElem = 1;
-    currentSensorContainer.temperature = transientSensorContainer.temperature;
-    currentSensorContainer.humidity = transientSensorContainer.humidity;
-    transientSensorContainer.temperature = tempMeas;
-    transientSensorContainer.humidity = tempMeas;
-    currentSensorContainer.sqTemperature = transientSensorContainer.sqTemperature;
-    currentSensorContainer.sqHumidiy = transientSensorContainer.sqHumidiy;
-    transientSensorContainer.sqTemperature = tempMeas * tempMeas;
-    transientSensorContainer.sqHumidiy = humMeas * humMeas;
+    cntElem = 0;
+    switchTransientToCurrent(currentTemp, currentHumi);
+    printAccumulatedTempInfo();
   }
+}
+
+void switchTransientToCurrent(float tempMeas, float humMeas){
+  currentSensorContainer.temperature = transientSensorContainer.temperature;
+  currentSensorContainer.humidity = transientSensorContainer.humidity;
+  transientSensorContainer.temperature = tempMeas;
+  transientSensorContainer.humidity = humMeas;
+  currentSensorContainer.sqTemperature = transientSensorContainer.sqTemperature;
+  currentSensorContainer.sqHumidiy = transientSensorContainer.sqHumidiy;
+  transientSensorContainer.sqTemperature = 0;//tempMeas * tempMeas;
+  transientSensorContainer.sqHumidiy = 0;//humMeas * humMeas;
+}
+
+float getActualTemperatureAvg(){
+  // return currentSensorContainer.corrTemperature + currentSensorContainer.temperature / lenWindow;
+  return currentSensorContainer.temperature;
+}
+
+float getActualHumidityAvg(){
+  // return currentSensorContainer.corrHumidity + currentSensorContainer.humidity / lenWindow;
+  return currentSensorContainer.humidity;
+}
+
+float getActualTemperatureStdev(){
+  // return sqrt((currentSensorContainer.sqTemperature - currentSensorContainer.temperature * currentSensorContainer.temperature / lenWindow) / (lenWindow - 1));
+  return sqrt(currentSensorContainer.sqTemperature/(lenWindow-1));
+}
+
+float getActualHumidityStdev(){
+  // return sqrt((currentSensorContainer.sqHumidiy - currentSensorContainer.humidity * currentSensorContainer.humidity / lenWindow) / (lenWindow - 1));
+  return sqrt(currentSensorContainer.sqHumidiy/(lenWindow-1));
+}
+void printAccumulatedTempInfo(){
+  print("T: ");
+  print(getActualTemperatureAvg());
+  print(" +- ");
+  print(getActualTemperatureStdev());
+
+  print(" H: ");
+  print(getActualHumidityAvg());
+  print(" +- ");
+  println(getActualHumidityStdev());
+
+  println("------------------");
 }
 
 int celsiusTomilliKelvin(float T)
@@ -310,10 +378,11 @@ void postValuesToServer(float T, float Hum, const char *location)
   if (executePost)
   {
     // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
-
-    String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
-    char* req = new char[str.length()+14+255];
-    sprintf(req, "POST %s%s HTTP/1.1",PATH_NAME,str.c_str());
+    char query[(255 + strlen(queryTemplate))];
+    fillQuery(query, celsiusTomilliKelvin(T), location, 'g');
+   
+    char req[(255 + strlen(queryTemplate))];
+    sprintf(req, "POST %s%s HTTP/1.1",PATH_NAME,query);
     println(req);
     WiFiSSLClient client;
     if (client.connectSSL(HOST_NAME, 443))
@@ -368,14 +437,13 @@ void switchLed()
   digitalWrite(LED_BUILTIN, ledState);
 }
 
-char* fillQuery(long tempMilli, const char loc[], char state)
+void fillQuery(char *queryBuffer, long tempMilli, const char loc[], char state)
 {
-  char *retVal = new char[(255 + strlen(queryTemplate))];
-  sprintf(retVal, queryTemplate, tempMilli, loc, state);
-  trim(retVal);
-  return retVal;
+  sprintf(queryBuffer, queryTemplate, tempMilli, loc, state);
+  trim(queryBuffer);
 }
 
+//ChatGPT :)
 void trim(char *str)
 {
     if (str == NULL) return;
@@ -399,4 +467,14 @@ void trim(char *str)
 
     // Null-terminate the new string
     *(str + (end - start + 1 - shift)) = '\0';
+}
+
+void display_freeram(){
+  Serial.print(F("- SRAM left: "));
+  Serial.println(freeRam());
+}
+
+int freeRam() {
+  char top;
+  return &top - reinterpret_cast<char*>(sbrk(0));
 }
