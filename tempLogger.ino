@@ -476,6 +476,6 @@ void display_freeram() {
 }
 
 int freeRam() {
-    char top;
+    char top=' ';
     return &top - reinterpret_cast<char*>(sbrk(0));
 }
