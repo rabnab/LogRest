@@ -84,7 +84,7 @@ void setup()
     status = initializeWiFi(status);
 
     println("\0");
-    char* msg = new char[255];
+    char msg[255]{};
     // you're connected now, so print out the data:
     snprintf(msg, 255, "You're connected to the network\nWifi - Firmware: %s latest: %s", WiFi.firmwareVersion(), WIFI_FIRMWARE_LATEST_VERSION);
     println(msg);
@@ -310,10 +310,10 @@ void postValuesToServer(float T, float Hum, const char* location)
     if (executePost)
     {
         // String str = fillQuery("2022-01-19%2011:30:00", T, location, 'g');
-
-        String str = fillQuery(celsiusTomilliKelvin(T), location, 'g');
-        char* req = new char[str.length() + 14 + 255];
-        sprintf(req, "POST %s%s HTTP/1.1", PATH_NAME, str.c_str());
+        char str[(255 + strlen(queryTemplate))]{};
+        fillQuery(str, celsiusTomilliKelvin(T), location, 'g');
+        char req[strlen(str) + 14 + 255]{};
+        sprintf(req, "POST %s%s HTTP/1.1", PATH_NAME, str);
         println(req);
         WiFiSSLClient client;
         if (client.connectSSL(HOST_NAME, 443))
@@ -368,12 +368,10 @@ void switchLed()
     digitalWrite(LED_BUILTIN, ledState);
 }
 
-char* fillQuery(long tempMilli, const char loc[], char state)
+void fillQuery(char *buffer, long tempMilli, const char loc[], char state)
 {
-    char* retVal = new char[(255 + strlen(queryTemplate))];
-    sprintf(retVal, queryTemplate, tempMilli, loc, state);
-    trim(retVal);
-    return retVal;
+    sprintf(buffer, queryTemplate, tempMilli, loc, state);
+    trim(buffer);
 }
 
 void trim(char* str)
