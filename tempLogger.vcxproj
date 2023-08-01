@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <Keyword>Linux</Keyword>
+    <RootNamespace>
+    </RootNamespace>
+    <ProjectName>tempLogger</ProjectName>
+    <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
+    <ApplicationType>Linux</ApplicationType>
+    <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
+    <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
+    <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
+    <ProjectGuid>{C11719F3-BA00-4E11-A830-3E184F7784F5}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <LinuxIncludePath>c:\visualmicro\ignore</LinuxIncludePath>
+    <wiringPiIncludePath>c:\visualmicro\pi-ignore</wiringPiIncludePath>
+    <TargetOSAndVersion>Arduino</TargetOSAndVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <IncludePath>$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\tools\\CMSIS\\4.5.0\CMSIS\Include;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\tools\\CMSIS-Atmel\\1.2.0\CMSIS\Device\ATMEL;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\cores\\arduino\api\deprecated;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\cores\\arduino\api\deprecated-avr-comp;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\cores\\arduino;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\variants\\nano_33_iot;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include\c++\7.2.1;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include\c++\7.2.1\arm-none-eabi\thumb\v6-m;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include\c++\7.2.1\backward;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\lib\gcc\arm-none-eabi\7.2.1\include;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\lib\gcc\arm-none-eabi\7.2.1\include-fixed;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include;$(ProjectDir)..\..\..\Documents\Arduino\libraries\Arduino_LSM6DS3\src;$(ProjectDir)..\..\..\Documents\Arduino\libraries\Adafruit_HTU21DF_Library;$(ProjectDir)..\..\..\Documents\Arduino\libraries\WiFiNINA\src;$(ProjectDir)..\..\..\Documents\Arduino\libraries\WiFiNINA\src\utility;$(ProjectDir)..\..\..\Documents\Arduino\libraries\Adafruit_Unified_Sensor</IncludePath>
+    <RemoteCCompileToolExe>$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\tools\\arm-none-eabi-gcc\\7-2017q4\bin\arm-none-eabi-g++</RemoteCCompileToolExe>
+    <RemoteCppCompileToolExe>$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\tools\\arm-none-eabi-gcc\\7-2017q4\bin\arm-none-eabi-g++</RemoteCppCompileToolExe>
+    <ValidateArchitecture>false</ValidateArchitecture>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectCapability Include="VisualMicro" />
+    <ProjectCapability Include="VisualMicroLinux" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="tempLogger.ino">
+      <FileType>CppCode</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="__vm\.tempLogger.vsarduino.h" />
+  </ItemGroup>
+  <PropertyGroup>
+    <DebuggerFlavor>VisualMicroDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\tools\\CMSIS\\4.5.0\CMSIS\Include;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\tools\\CMSIS-Atmel\\1.2.0\CMSIS\Device\ATMEL;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\cores\\arduino\api\deprecated;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\cores\\arduino\api\deprecated-avr-comp;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\cores\\arduino;$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\hardware\\samd\\1.8.13\\variants\\nano_33_iot;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include\c++\7.2.1;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include\c++\7.2.1\arm-none-eabi\thumb\v6-m;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include\c++\7.2.1\backward;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\lib\gcc\arm-none-eabi\7.2.1\include;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\lib\gcc\arm-none-eabi\7.2.1\include-fixed;$(ProjectDir)..\..\..\appdata\local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\7-2017q4\arm-none-eabi\include;$(ProjectDir)..\..\..\Documents\Arduino\libraries\Arduino_LSM6DS3\src;$(ProjectDir)..\..\..\Documents\Arduino\libraries\Adafruit_HTU21DF_Library;$(ProjectDir)..\..\..\Documents\Arduino\libraries\WiFiNINA\src;$(ProjectDir)..\..\..\Documents\Arduino\libraries\WiFiNINA\src\utility;$(ProjectDir)..\..\..\Documents\Arduino\libraries\Adafruit_Unified_Sensor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <GccToolChain>$(ProjectDir)..\..\..\..\..\\Users\\Rainer\\AppData\\Local\\arduino15\\packages\\arduino\\tools\\arm-none-eabi-gcc\\7-2017q4\bin\arm-none-eabi-g++</GccToolChain>
+      <CppLanguageStandard>gnu++11</CppLanguageStandard>
+      <CLanguageStandard>gnu11</CLanguageStandard>
+      <CAdditionalWarning />
+      <CppAdditionalWarning />
+      <ForcedIncludeFiles>$(ProjectDir)..\..\..\..\..\program files\microsoft visual studio\2022\community\common7\ide\extensions\ced54psf.j5f\Micro Platforms\default\vm-intelli-pre.h;$(ProjectDir)..\..\..\AppData\Local\Temp\VMBuilds\tempLogger\nano_33_iot\Release\.vmintelli\78b74acb2ed9100ac27c9fc9246bc2fc\vm-intelli-gcc-defines.h;$(ProjectDir)..\..\..\..\..\program files\microsoft visual studio\2022\community\common7\ide\extensions\ced54psf.j5f\Micro Platforms\default\vm-intelli-post.h;$(ProjectDir)__vm\.tempLogger.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <UndefineAllPreprocessorDefinitions>true</UndefineAllPreprocessorDefinitions>
+      <IgnoreStandardIncludePath>true</IgnoreStandardIncludePath>
+      <PreprocessorDefinitions>_VMICRO_INTELLISENSE;F_CPU=48000000L;ARDUINO=108010;ARDUINO_SAMD_NANO_33_IOT;ARDUINO_ARCH_SAMD;CRYSTALLESS;__SAMD21G18A__;USB_VID=0x2341;USB_PID=0x8057;USBCON;USB_MANUFACTURER="Arduino;USB_PRODUCT="Arduino;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
