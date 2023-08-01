@@ -179,7 +179,7 @@ const char* translateWifiState(int state)
     case WL_DISCONNECTED:
         return "disconnected";
     default:
-        char buffer[10];
+        char buffer[10]{};
 
         itoa(state, buffer, 10);
         return buffer;
@@ -341,7 +341,7 @@ void postValuesToServer(float T, float Hum, const char* location)
         }
         else
         { // if not connected:
-            char msg[255];
+            char msg[255]{};
             snprintf(msg, 255, "connection to 'https://%s' failed", HOST_NAME);
             println(msg);
             //while (1)
