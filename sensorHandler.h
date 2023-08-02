@@ -38,26 +38,26 @@ public:
 
 
 	};
-boolean updateSensorValues();
+	boolean updateSensorValues();
 
-void switchTransientToCurrent(float tempMeas, float humMeas);
+	void switchTransientToCurrent(float tempMeas, float humMeas);
 
-float getActualTemperatureAvg();
+	float getActualTemperatureAvg();
 
-float getActualHumidityAvg();
+	float getActualHumidityAvg();
 
-float getActualTemperatureStdev();
+	float getActualTemperatureStdev();
 
-float getActualHumidityStdev();
+	float getActualHumidityStdev();
 
-void outputPressTempSensors();
+	void outputPressTempSensors();
 
-void printAccumulatedTempInfo();
+	void printAccumulatedTempInfo();
 
-void initializeTemp();
+	void initializeTemp();
 
 
 
-boolean init();
+	boolean init();
 
 };

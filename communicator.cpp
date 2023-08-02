@@ -49,7 +49,7 @@ const char* Communicator::translateWifiState(int state)
 
 void Communicator::fillQuery(char* queryBuffer, long tempMilli, const char loc[], char state)
 {
-    sprintf(queryBuffer, queryTemplate, tempMilli, loc, state);
+    sprintf(queryBuffer, Communicator::queryTemplate, tempMilli, loc, state);
     trim(queryBuffer);
 }
 
@@ -60,16 +60,16 @@ char* Communicator::postValuesToServer(float T, float Hum, const char* location)
         fillQuery(query, celsiusTomilliKelvin(T), location, 'g');
 
         char req[(255 + strlen(queryTemplate))];
-        sprintf(req, "POST %s%s HTTP/1.1", PATH_NAME, query);
+        sprintf(req, "POST %s%s HTTP/1.1", Communicator::PATH_NAME, query);
         println(req);
         char* outputBuffer = new char[256];
         int outputLen = 0;
         WiFiSSLClient client;
-        if (client.connectSSL(HOST_NAME, 443))
+        if (client.connectSSL(Communicator::HOST_NAME, 443))
         {
             // if connected:
             client.println(req);
-            client.println("Host: " + String(HOST_NAME));
+            client.println("Host: " + String(Communicator::HOST_NAME));
             client.print("Authorization: Basic ");
             client.println(BASICAUTH);
             client.println("Connection: close");
@@ -78,12 +78,12 @@ char* Communicator::postValuesToServer(float T, float Hum, const char* location)
 
             delay(500);
             int availableBytes = client.available();
-            boolean addNewLine = outputVerbose && availableBytes;
+            boolean addNewLine = availableBytes;
             
             while (client.available())
             {
                 char c = client.read();
-                if (outputVerbose && outputLen<255) {
+                if (outputLen<255) {
                     outputBuffer[outputLen++] = c;
                 }
             }
@@ -95,7 +95,7 @@ char* Communicator::postValuesToServer(float T, float Hum, const char* location)
         else
         { // if not connected:
             char msg[255];
-            snprintf(msg, 255, "connection to 'https://%s' failed", HOST_NAME);
+            snprintf(msg, 255, "connection to 'https://%s' failed", Communicator::HOST_NAME);
             println(msg);
             //while (1)
             //  ;

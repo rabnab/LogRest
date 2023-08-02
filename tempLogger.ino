@@ -116,7 +116,7 @@ void loop()
                 senH->getActualHumidityAvg(),
                 "test");
             if (serialOutput != nullptr) {
-                Serial.print(serialOutput);
+                if (outputVerbose) Serial.print(serialOutput);
                 free(serialOutput);
             }
         }

@@ -9,17 +9,10 @@ private:
 
 	static const char* PATH_NAME;
 	static const char* getURL;
-
 	static const char* queryTemplate;
-	boolean outputVerbose = false;
 
 public:
-	Communicator() {
-		PATH_NAME = "/temperature";
-		getURL = "/temperature?loc=SRi/keh&lb=1&ub=10000";
-
-		queryTemplate = "?y=%ld&loc=%s&s=%c";
-	};
+	Communicator() {};
 	void fillQuery(char* queryBuffer, long tempMilli, const char loc[], char state);
 
 	int initializeWiFi(int statIn);
@@ -29,4 +22,7 @@ public:
 	int getWifiState();
 };
 
+const char* Communicator::PATH_NAME = "/temperature";
+const char* Communicator::getURL = "/temperature?loc=SRi/keh&lb=1&ub=10000";
+const char* Communicator::queryTemplate = "?y=%ld&loc=%s&s=%c";
 
