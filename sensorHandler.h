@@ -35,10 +35,8 @@ SensorData transientSensorContainer;
 
 void SensorHandlerInit() {
 	htu21df = Adafruit_HTU21DF(); // I2C
-
-
-
 };
+
 boolean updateSensorValues();
 
 void switchTransientToCurrent(float tempMeas, float humMeas);
@@ -57,12 +55,7 @@ void printAccumulatedTempInfo();
 
 void initializeTemp();
 
-
-
 boolean startSensors();
-
-
-
 
 boolean updateSensorValues()
 {
