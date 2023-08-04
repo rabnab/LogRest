@@ -27,6 +27,8 @@ int initializeWiFi(int statIn)
 	while (stat != WL_CONNECTED)
 	{
 		print("$");
+    //release the old connection to wifi
+    WiFi.end();
 		// Connect to WPA/WPA2 network:
 		stat = WiFi.begin(ssid, psk);
 
