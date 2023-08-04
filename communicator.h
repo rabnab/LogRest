@@ -19,7 +19,7 @@ const char* queryTemplate = "?y=%ld&loc=%s&s=%c";
 
 static const char* HOST_NAME = THEHOST;
 static const char* ssid = WIFI_SSID;
-static char* psk = WIFI_PWD;
+static const char* psk = WIFI_PWD;
 
 int initializeWiFi(int statIn)
 {
