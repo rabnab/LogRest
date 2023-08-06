@@ -99,6 +99,7 @@ void setup()
     println("---------------------------------------");
 
     if (!htu21df.begin())
+
     {
         println("Failed to initialize Temperature htu21df!");
         for (int i = 0; i < 10; i++)
@@ -120,15 +121,15 @@ void setup()
 
 void initializeTemp()
 {
-    //initialize the currentSensorContainer
-    // currentSensorContainer.temperature = (htu21df.readTemperature() - currentSensorContainer.corrTemperature);
-    // currentSensorContainer.humidity = (htu21df.readHumidity() - currentSensorContainer.corrHumidity);
-    currentSensorContainer.temperature = 0;
-    currentSensorContainer.humidity = 0;
-    currentSensorContainer.sqTemperature = currentSensorContainer.temperature * currentSensorContainer.temperature;
-    currentSensorContainer.sqHumidiy = currentSensorContainer.humidity * currentSensorContainer.humidity;
-    //copy the transientSensorContainer by a deep copy
-    memcpy(&transientSensorContainer, &currentSensorContainer, sizeof(SensorData));
+  //initialize the currentSensorContainer
+  // currentSensorContainer.temperature = (htu21df.readTemperature() - currentSensorContainer.corrTemperature);
+  // currentSensorContainer.humidity = (htu21df.readHumidity() - currentSensorContainer.corrHumidity);
+  currentSensorContainer.temperature = 0;
+  currentSensorContainer.humidity = 0;
+  currentSensorContainer.sqTemperature = currentSensorContainer.temperature * currentSensorContainer.temperature;
+  currentSensorContainer.sqHumidiy = currentSensorContainer.humidity * currentSensorContainer.humidity;
+  //copy the transientSensorContainer by a deep copy
+  memcpy(&transientSensorContainer, &currentSensorContainer, sizeof(SensorData));
 }
 
 void  println(const char* str) {
@@ -176,38 +177,38 @@ int initializeWiFi(int statIn)
 
 const char* translateWifiState(int state)
 {
-    switch (state)
-    {
-    case WL_CONNECTED:
-        return "connected";
-    case WL_IDLE_STATUS:
-        return "idle";
-    case WL_CONNECTION_LOST:
-        return "connection lost";
-    case WL_CONNECT_FAILED:
-        return "connection failed";
-    case WL_DISCONNECTED:
-        return "disconnected";
-    default:
-        return "unknown state";
-    }
+  switch (state)
+  {
+  case WL_CONNECTED:
+    return "connected";
+  case WL_IDLE_STATUS:
+    return "idle";
+  case WL_CONNECTION_LOST:
+    return "connection lost";
+  case WL_CONNECT_FAILED:
+    return "connection failed";
+  case WL_DISCONNECTED:
+    return "disconnected";
+  default:
+    return "unknown state";
+  }
 }
 
 void outputPressTempSensors()
 {
-    float tAvg = getActualTemperatureAvg();
-    float hAvg = getActualHumidityAvg();
-    print(" --- T2: ");
-    print(htu21df.readTemperature());
-    print("(");
-    print(tAvg);
-    print("=");
-    print(celsiusTomilliKelvin(tAvg));
-    print("mK) ---  Humi: ");
-    print(htu21df.readHumidity());
-    print("%(");
-    print(hAvg);
-    println(")");
+  float tAvg=getActualTemperatureAvg();
+  float hAvg=getActualHumidityAvg();
+  print(" --- T2: ");
+  print(htu21df.readTemperature());
+  print("(");
+  print(tAvg);
+  print("=");
+  print(celsiusTomilliKelvin(tAvg));
+  print("mK) ---  Humi: ");
+  print(htu21df.readHumidity());
+  print("%(");
+  print(hAvg);
+  println(")");
 }
 
 void loop()
@@ -365,6 +366,50 @@ void printAccumulatedTempInfo() {
     println(getActualHumidityStdev());
 
     println("------------------");
+}
+
+void switchTransientToCurrent(float tempMeas, float humMeas){
+  currentSensorContainer.temperature = transientSensorContainer.temperature;
+  currentSensorContainer.humidity = transientSensorContainer.humidity;
+  transientSensorContainer.temperature = tempMeas;
+  transientSensorContainer.humidity = humMeas;
+  currentSensorContainer.sqTemperature = transientSensorContainer.sqTemperature;
+  currentSensorContainer.sqHumidiy = transientSensorContainer.sqHumidiy;
+  transientSensorContainer.sqTemperature = 0;//tempMeas * tempMeas;
+  transientSensorContainer.sqHumidiy = 0;//humMeas * humMeas;
+}
+
+float getActualTemperatureAvg(){
+  // return currentSensorContainer.corrTemperature + currentSensorContainer.temperature / lenWindow;
+  return currentSensorContainer.temperature;
+}
+
+float getActualHumidityAvg(){
+  // return currentSensorContainer.corrHumidity + currentSensorContainer.humidity / lenWindow;
+  return currentSensorContainer.humidity;
+}
+
+float getActualTemperatureStdev(){
+  // return sqrt((currentSensorContainer.sqTemperature - currentSensorContainer.temperature * currentSensorContainer.temperature / lenWindow) / (lenWindow - 1));
+  return sqrt(currentSensorContainer.sqTemperature/(lenWindow-1));
+}
+
+float getActualHumidityStdev(){
+  // return sqrt((currentSensorContainer.sqHumidiy - currentSensorContainer.humidity * currentSensorContainer.humidity / lenWindow) / (lenWindow - 1));
+  return sqrt(currentSensorContainer.sqHumidiy/(lenWindow-1));
+}
+void printAccumulatedTempInfo(){
+  print("T: ");
+  print(getActualTemperatureAvg());
+  print(" +- ");
+  print(getActualTemperatureStdev());
+
+  print(" H: ");
+  print(getActualHumidityAvg());
+  print(" +- ");
+  println(getActualHumidityStdev());
+
+  println("------------------");
 }
 
 int celsiusTomilliKelvin(float T)
