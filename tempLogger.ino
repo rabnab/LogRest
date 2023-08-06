@@ -26,7 +26,8 @@ unsigned long previousMillisReconnect = 0;  // will store the last time that HTT
 //for memory measurement
 extern "C" char* sbrk(int incr);
 
-
+Communicator* comH;
+SensorHandler* senH;
 
 
 void setup() {
@@ -38,36 +39,39 @@ void setup() {
   // while (!Serial);
   // while(!Serial1);
 
+  comH = new Communicator();
+
   // set the LED as output
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
   // attempt to connect to Wi-Fi network:
-  print("Attempting to connect to network: ");
+  tempUtil::print("Attempting to connect to network: ");
 
-  print(getSSID());
-  print(" ");
+  tempUtil::print(comH->getSSID());
+  tempUtil::print(" ");
 
-  status = initializeWiFi(status);
+  
+  status = comH->initializeWiFi(status);
 
-  println("\0");
+  tempUtil::println("\0");
   char msg[255];
   // you're connected now, so print out the data:
   snprintf(msg, 255, "You're connected to the network\nWifi - Firmware: %s latest: %s", WiFi.firmwareVersion(), WIFI_FIRMWARE_LATEST_VERSION);
-  println(msg);
-  println("---------------------------------------");
+  tempUtil::println(msg);
+  tempUtil::println("---------------------------------------");
 
-  SensorHandlerInit();
-  if (!startSensors()) {
-    println("Failed to initialize Temperature htu21df!");
+  senH = new SensorHandler();
+  if (!senH->init()) {
+    tempUtil::println("Failed to initialize Temperature htu21df!");
     for (int i = 0; i < 10; i++) {
       delay(500);
-      if (startSensors()) {
-        print("finally succeeded after ");
-        print(i);
-        println(" tries!");
+      if (senH->init()) {
+        tempUtil::print("finally succeeded after ");
+        tempUtil::print(i);
+        tempUtil::println(" tries!");
         i = 100;
       } else
-        println("try again");
+        tempUtil::println("try again");
     }
   }
 }
@@ -88,13 +92,12 @@ void loop() {
     previousMillisInfo = currentMillisInfo;
     // switchLed();
     if (outputVerbose) {
-      outputPressTempSensors();
+      senH->outputPressTempSensors();
     }
-    if (updateSensorValues()) {
-      char* serialOutput = postValuesToServer(
-        getActualTemperatureAvg(),
-        getActualHumidityAvg(),
-        "test");
+    if (senH->updateSensorValues()) {
+      char* serialOutput = comH->postValuesToServer(
+        senH->getActualTemperatureAvg(),
+        senH->getActualHumidityAvg());
       if (serialOutput != nullptr) {
         if (outputVerbose) Serial.print(serialOutput);
         free(serialOutput);
@@ -119,12 +122,12 @@ void loop() {
     previousMillisReconnect = currentMillisInfo;
     // if the server's disconnected, stop the client:
 
-    int wifiState = getWifiState();
+    int wifiState = comH->getWifiState();
     if (wifiState != WL_CONNECTED) {
-      print("wifi state: ");
-      println(translateWifiState(wifiState));
-      println("resetting wifi due to connection loss.");
-      status = initializeWiFi(wifiState);
+      tempUtil::print("wifi state: ");
+      tempUtil::println(comH->translateWifiState(wifiState));
+      tempUtil::println("resetting wifi due to connection loss.");
+      status = comH->initializeWiFi(wifiState);
     }
 
     if (outputMemory) {
