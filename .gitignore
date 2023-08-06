@@ -6,3 +6,5 @@ bin
 /__vm/Configuration.Release.vmps.xml
 /__vm/Compile.vmps.xml
 /obj/ARM64/Release
+/tempLogger.vcxproj.filters
+*.user
