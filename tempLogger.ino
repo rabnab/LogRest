@@ -51,7 +51,7 @@ void setup() {
   tempUtil::print(" ");
 
   
-  status = comH->initializeWiFi(status);
+  status = comH->initializeWiFi(status,millis());
 
   tempUtil::println("\0");
   char msg[255];
@@ -127,8 +127,9 @@ void loop() {
       tempUtil::print("wifi state: ");
       tempUtil::println(comH->translateWifiState(wifiState));
       tempUtil::println("resetting wifi due to connection loss.");
-      status = comH->initializeWiFi(wifiState);
+      status = comH->initializeWiFi(wifiState, currentMillisInfo);
     }
+
 
     if (outputMemory) {
       display_freeram();
