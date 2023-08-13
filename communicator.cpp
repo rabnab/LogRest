@@ -20,20 +20,22 @@ int Communicator::initializeWiFi(int statIn, unsigned long currentMillis) {
       tempUtil::print(" ");
       tempUtil::println(translateWifiState(stat));
       WiFi.noLowPowerMode();
+      tempUtil::println("WifI in highPowerMode");
       this->lastLowPowerMillis = currentMillis;
     }
 
     unsigned long fiveMinutes = 300000;
-    if ((currentMillis-(this->lastLowPowerMillis))>fiveMinutes){
+    if ((currentMillis - (this->lastLowPowerMillis)) > fiveMinutes) {
       this->lastLowPowerMillis = currentMillis;
       WiFi.lowPowerMode();
+      tempUtil::println("WifI in lowPowerMode");
     }
     // wait 0.2 seconds for connection:
     delay(200);
-
   }
   return stat;
 }
+
 const char* Communicator::translateWifiState(int state) {
   switch (state) {
     case WL_CONNECTED:
