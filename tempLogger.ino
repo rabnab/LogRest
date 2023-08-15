@@ -4,8 +4,8 @@
 #include "util.h"
 
 // interval constants
-const int intervalInfo = 500;  // interval at which to update the board information
-const int reconnectInterval = 5000;
+const unsigned long  updateSensorsAndPostInterval = 2000;  // interval at which to update the board information
+const unsigned long  reconnectInterval = 60L*updateSensorsAndPostInterval;
 
 // switches controlling program flow
 
@@ -79,9 +79,8 @@ void loop() {
 
   unsigned long currentMillisInfo = millis();
   // check if the time after the last update is bigger the interval
-  if (currentMillisInfo - previousMillisInfo >= intervalInfo) {
+  if (currentMillisInfo - previousMillisInfo >= updateSensorsAndPostInterval) {
     previousMillisInfo = currentMillisInfo;
-    // switchLed();
     if (outputVerbose) {
       senH->outputPressTempSensors();
     }
@@ -121,19 +120,6 @@ void loop() {
       display_freeram();
     }
   }
-}
-
-
-void switchLed() {
-  // if the LED is off turn it on and vice-versa:
-  if (ledState == LOW) {
-    ledState = HIGH;
-  } else {
-    ledState = LOW;
-  }
-
-  // set the LED with the ledState of the variable:
-  digitalWrite(LED_BUILTIN, ledState);
 }
 
 void display_freeram() {
