@@ -67,7 +67,7 @@ class MeasurementResource(object):
           if loc in self.deviceIdentifier:
               sensorType = ["temperature","humidity"]
               for curType in sensorType:
-                  mqttTopic = "homeassistant/sensor/{1}{0}Sensor/config".format(curType,loc)
+                  mqttTopic = "homeassistant/sensor/{1}_{0}Sensor/config".format(curType,loc)
                   
                   mqttPayload = json.dumps({'device_class': curType,
                       'state_topic': 'home/{0}/meas'.format(loc),
