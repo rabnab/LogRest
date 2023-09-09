@@ -117,8 +117,7 @@ void loop() {
 
     if (outputMemory) {
       display_freeram();
-    }
-  }
+    }  }
 }
 
 void display_freeram() {
