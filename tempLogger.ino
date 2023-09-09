@@ -4,8 +4,8 @@
 #include "util.h"
 
 // interval constants
-const int intervalInfo = 500;  // interval at which to update the board information
-const int reconnectInterval = 5000;
+const unsigned long  updateSensorsAndPostInterval = 2000;  // interval at which to update the board information
+const unsigned long  reconnectInterval = 60L*updateSensorsAndPostInterval;
 
 // switches controlling program flow
 
@@ -15,7 +15,6 @@ boolean outputVerbose = false;
 // transient states and counter
 int status = WL_IDLE_STATUS;  // the Wi-Fi radio's status
 int ledState = LOW;           // ledState used to set the LED
-
 
 // various timers
 unsigned long previousMillisInfo = 0;       // will store last time Wi-Fi information was updated
@@ -49,8 +48,8 @@ void setup() {
   tempUtil::print(comH->getSSID());
   tempUtil::print(" ");
 
-  
-  status = comH->initializeWiFi(status);
+
+  status = comH->initializeWiFi(status, millis());
 
   tempUtil::println("\0");
   char msg[255];
@@ -79,9 +78,8 @@ void loop() {
 
   unsigned long currentMillisInfo = millis();
   // check if the time after the last update is bigger the interval
-  if (currentMillisInfo - previousMillisInfo >= intervalInfo) {
+  if (currentMillisInfo - previousMillisInfo >= updateSensorsAndPostInterval) {
     previousMillisInfo = currentMillisInfo;
-    // switchLed();
     if (outputVerbose) {
       senH->outputPressTempSensors();
     }
@@ -103,6 +101,7 @@ void loop() {
     } else if (controlMsg == 'm') {
       outputMemory = !outputMemory;
     }
+  }
 
   if ((currentMillisInfo - previousMillisReconnect) > reconnectInterval) {
     previousMillisReconnect = currentMillisInfo;
@@ -113,79 +112,13 @@ void loop() {
       tempUtil::print("wifi state: ");
       tempUtil::println(comH->translateWifiState(wifiState));
       tempUtil::println("resetting wifi due to connection loss.");
-      status = comH->initializeWiFi(wifiState);
-    }
-}
-
-void updateSensorValues(float currentTemp, float currentHumi)
-{
-    // float tempMeas = currentTemp - currentSensorContainer.corrTemperature;
-    // float humMeas = currentHumi - currentSensorContainer.corrHumidity;
-    cntElem++;
-    // int transElem=(cntElem+lenWindow/2);
-    int transElem = cntElem;
-    int curElem = (cntElem + lenWindow / 2);
-    if (firstRun) {
-        curElem = cntElem;
+      status = comH->initializeWiFi(wifiState, currentMillisInfo);
     }
 
-    float delta = currentTemp - currentSensorContainer.temperature;
-    currentSensorContainer.temperature += delta / curElem;
-    //now using updated temperature
-    float delta2 = currentTemp - currentSensorContainer.temperature;
-    currentSensorContainer.sqTemperature += delta * delta2;
-
-    delta = currentTemp - transientSensorContainer.temperature;
-    transientSensorContainer.temperature += delta / transElem;
-    delta2 = currentTemp - transientSensorContainer.temperature;
-    transientSensorContainer.sqTemperature += delta * delta2;
-
-    delta = currentHumi - currentSensorContainer.humidity;
-    currentSensorContainer.humidity += delta / curElem;
-    //now using updated temperature
-    delta2 = currentHumi - currentSensorContainer.humidity;
-    currentSensorContainer.sqHumidiy += delta * delta2;
-
-    delta = currentHumi - transientSensorContainer.humidity;
-    transientSensorContainer.humidity += delta / transElem;
-    delta2 = currentHumi - transientSensorContainer.humidity;
-    transientSensorContainer.sqHumidiy += delta * delta2;
-
-
-    // currentSensorContainer.humidity += humMeas;
-    // transientSensorContainer.humidity += humMeas;
-    // currentSensorContainer.temperature += tempMeas;
-    // transientSensorContainer.temperature += tempMeas;
-
-    // currentSensorContainer.sqHumidiy += humMeas * humMeas;
-    // transientSensorContainer.sqHumidiy += humMeas * humMeas;
-    // currentSensorContainer.sqTemperature += tempMeas * tempMeas;
-    // transientSensorContainer.sqTemperature += tempMeas * tempMeas;
-
-    if (cntElem == lenWindow / 2 && !firstRun)
-    {
-        switchTransientToCurrent(currentTemp, currentHumi);
+    if (outputMemory) {
+      display_freeram();
     }
-    else if (cntElem == lenWindow)
-    {
-        firstRun = false;
-        executePost = true;
-        cntElem = 0;
-        switchTransientToCurrent(currentTemp, currentHumi);
-        printAccumulatedTempInfo();
-    }
-}
-
-void switchLed() {
-  // if the LED is off turn it on and vice-versa:
-  if (ledState == LOW) {
-    ledState = HIGH;
-  } else {
-    ledState = LOW;
   }
-
-    // set the LED with the ledState of the variable:
-    digitalWrite(LED_BUILTIN, ledState);
 }
 
 void display_freeram() {

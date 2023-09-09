@@ -7,26 +7,35 @@ const char* Communicator::HOST_NAME = THEHOST;
 const char* Communicator::ssid = WIFI_SSID;
 const char* Communicator::psk = WIFI_PWD;
 
-int Communicator::initializeWiFi(int statIn) {
+int Communicator::initializeWiFi(int statIn, unsigned long currentMillis) {
   int stat = statIn;
   while (stat != WL_CONNECTED) {
     tempUtil::print("$");
     WiFi.end();
     // Connect to WPA/WPA2 network:
-    WiFi.lowPowerMode();
     stat = WiFi.begin(ssid, psk);
-    WiFi.lowPowerMode();
     if (stat != WL_CONNECTED) {
       tempUtil::print("Reason code: ");
       tempUtil::print(WiFi.reasonCode());
       tempUtil::print(" ");
       tempUtil::println(translateWifiState(stat));
+      WiFi.noLowPowerMode();
+      tempUtil::println("WifI in highPowerMode");
+      this->lastLowPowerMillis = currentMillis;
     }
-    // wait 2 seconds for connection:
-    delay(2000);
+
+    unsigned long fiveMinutes = 300000;
+    if ((currentMillis - (this->lastLowPowerMillis)) > fiveMinutes) {
+      this->lastLowPowerMillis = currentMillis;
+      WiFi.lowPowerMode();
+      tempUtil::println("WifI in lowPowerMode");
+    }
+    // wait 0.2 seconds for connection:
+    delay(200);
   }
   return stat;
 }
+
 const char* Communicator::translateWifiState(int state) {
   switch (state) {
     case WL_CONNECTED:

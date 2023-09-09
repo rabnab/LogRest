@@ -25,10 +25,10 @@ class SensorHandler {
 private:
   Adafruit_HTU21DF htu21df;
   // constants for calculating the sensor values
-  const float LAM = 0.05;
+  // const float LAM = 0.05;
   const int lenWindow = 30;
-  const int plusThreshold = 30;
-  const int minusThreshold = -30;
+  // const int plusThreshold = 30;
+  // const int minusThreshold = -30;
   int cntElem = 0;
   boolean firstRun = false;
 

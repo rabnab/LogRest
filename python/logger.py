@@ -2,19 +2,20 @@ import falcon, json, datetime, pytz
 import paho.mqtt.client as mqtt
 import traceback
 import loggerPhysics
-import decimal
-from decimal import Decimal
 
 class MeasurementResource(object):
   mqttBroker = "127.0.0.1"
   mqttMeasTopic = "home/{0}/meas"
   client = mqtt.Client("Temperature_Inside_Rakal")
+  deviceIdentifier = {'SZ': '["0afe"]', 'WZ': '["0afd"]', 'test': '["1234"]'}
+  deviceName = {'SZ': 'Schlafzimmer Sensor', 'WZ': 'Wohnzimmer Sensor', 'test': 'forgetIt'}
+  lstReceivedLocations = []
 
   def init(self):
       try:
           self.client.on_disconnect=self.mqttDisconnected
           self.client.on_connect=self.mqttConnected
-          self.client.on_publish=self.mqttPublished
+          #self.client.on_publish=self.mqttPublished
           self.client.username_pw_set("mosquitto", "mytridil83")
           self.client.connect(self.mqttBroker)
           self.client.loop_start()
@@ -30,10 +31,6 @@ class MeasurementResource(object):
   def mqttDisconnected(self, client, userdata, rc=0):
       print("mqtt disconnected rc:"+str(rc), flush=True)
       client.loop_stop()
-
-  def mqttPublished(self, client, userdata, mid=0):
-      print("mqtt published ",  flush=True)
-
 
   def on_post(self, req, resp):
       #print("entering post for path: " + req.path, flush=True)
@@ -59,6 +56,32 @@ class MeasurementResource(object):
           resp.status = falcon.HTTP_201
           resp.body = json.dumps({"success": True})
 
+  def setupNewLocation(self, loc):
+      if loc not in self.lstReceivedLocations:
+          if loc in self.deviceIdentifier:
+              sensorType = ["temperature","humidity"]
+              for curType in sensorType:
+                  mqttTopic = "homeassistant/sensor/{1}_{0}/config".format(curType.lower(),loc.lower())
+                  
+                  mqttPayload = json.dumps({"device_class": curType,
+                      "name": "{0}_{1}".format(loc, curType).lower(),
+                      "state_topic": "home/{0}/meas".format(loc),
+                      "unique_id": "{0}_{1}".format(loc, curType),
+                      "value_template":  "{{{{ value_json.HTU21.{0} | round(2) }}}}".format(curType),
+                      "unit_of_measurement": ({True: "°C", False: "%"}) [curType == "temperature"] ,
+                      "device": {
+                          "identifiers": self.deviceIdentifier[loc],
+                          "name": self.deviceName[loc]
+                          }
+                      }, indent=2)
+                  print("publishing: " + mqttTopic + " payload: " + mqttPayload, flush=True)
+                  pubs(self.client, self.mqttBroker, mqttTopic, mqttPayload)
+              self.lstReceivedLocations.append(loc)
+          else:
+              print("location: " + loc + " not configurable", flush=True)
+      #else:
+         #print("location: " + loc + " already in list of configured location: " + repr(self.lstReceivedLocations), flush=True)
+      
   def pubToMqTT(self, dataAsRequest):
       #print("entering publish: " + repr(dataAsRequest), flush=True)
       temperatureString=dataAsRequest.get_param("t", required=True, default="nodata")
@@ -76,33 +99,32 @@ class MeasurementResource(object):
 
       sourceName=dataAsRequest.get_param("loc", required=True)
 
+      self.setupNewLocation(sourceName)
+        
+
       #print("\tmeas from source: " + sourceName, flush=True)
       #print("\ttemperature: " + repr(temperatureCelsius), flush=True)
       #print("\thumidity: " + repr(humidityPerc), flush=True)
       mqttTopic=self.mqttMeasTopic.format(sourceName)
-      rounder = Decimal('0.1')
       mqttPayload = json.dumps({'HTU21':{
-          'temperature':Decimal(temperatureCelsius).quantize(rounder),
-          'humidity':Decimal(humidityPerc).quantize(rounder),
-          'dewpoint':Decimal(dewPoint).quantize(rounder)},
-          },indent=2, cls=DecimalEncoder)
-      #print("publishing: " + mqttTopic + " payload: " + mqttPayload, flush=True)
-      try:
-          pubResult=self.client.publish(mqttTopic, mqttPayload)
-          if pubResult.rc!= 0:
-            print("pubResult was not succesful: " + mqtt.error_string(pubResult.rc), flush=True)
-            client.loop_stop()
-            client.connect(self.mqttBroker)
-            client.loop_start() 
-      except Exception as ex:
-          print("mqtt publish resulted in error: " + repr(ex))
+          'temperature':temperatureCelsius,
+          'humidity':humidityPerc,
+          'dewpoint':dewPoint,
+          }},indent=2) 
+      print("publishing: " + mqttTopic + " payload: " + mqttPayload, flush=True)
+      pubs(self.client, self.mqttBroker, mqttTopic, mqttPayload)
 
+def pubs(client, mqttBroker, topic, payload):
+  try:
+      pubResult=client.publish(topic, payload)
+      if pubResult.rc!= 0:
+        print("pubResult was not succesful: " + mqtt.error_string(pubResult.rc), flush=True)
+        client.loop_stop()
+        client.connect(mqttBroker)
+        client.loop_start() 
+  except Exception as ex:
+      print("mqtt publish resulted in error: " + repr(ex))
 
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, decimal.Decimal):
-            return str(o)
-        return super(DecimalEncoder, self).default(o)
 
 ##set backend for authentication
 #backend = BasicAuthBackend(basic_loader)
