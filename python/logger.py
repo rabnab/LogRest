@@ -73,7 +73,7 @@ class MeasurementResource(object):
                       'state_topic': 'home/{0}/meas'.format(loc),
                       'unique_id': '{0}_{1}'.format(loc, curType),
                       'value_template': '{{value_json.{0}}}'.format(curType),
-                      'unit_of_measurement': ('°C', '%') [curType == "temperature"] ,
+                      'unit_of_measurement': ({True: '°C', False: '%'}) [curType == "temperature"] ,
                       'device': {
                           'identifiers': self.deviceIdentifier[loc],
                           'name': self.deviceName[loc]
