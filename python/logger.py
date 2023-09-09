@@ -2,15 +2,13 @@ import falcon, json, datetime, pytz
 import paho.mqtt.client as mqtt
 import traceback
 import loggerPhysics
-import decimal
-from decimal import Decimal
 
 class MeasurementResource(object):
   mqttBroker = "127.0.0.1"
   mqttMeasTopic = "home/{0}/meas"
   client = mqtt.Client("Temperature_Inside_Rakal")
-  deviceIdentifier = {'SZ': '["0afe"]', 'WZ': '["0afd"]'}
-  deviceName = {'SZ': 'Schlafzimmer Sensor', 'WZ': 'Wohnzimmer Sensor'}
+  deviceIdentifier = {'SZ': '["0afe"]', 'WZ': '["0afd"]', 'test': '["1234"]'}
+  deviceName = {'SZ': 'Schlafzimmer Sensor', 'WZ': 'Wohnzimmer Sensor', 'test': 'forgetIt'}
   lstReceivedLocations = []
 
   def init(self):
@@ -67,18 +65,19 @@ class MeasurementResource(object):
           if loc in self.deviceIdentifier:
               sensorType = ["temperature","humidity"]
               for curType in sensorType:
-                  mqttTopic = "homeassistant/sensor/{1}_{0}Sensor/config".format(curType,loc)
+                  mqttTopic = "homeassistant/sensor/{1}_{0}/config".format(curType.lower(),loc.lower())
                   
-                  mqttPayload = json.dumps({'device_class': curType,
-                      'state_topic': 'home/{0}/meas'.format(loc),
-                      'unique_id': '{0}_{1}'.format(loc, curType),
-                      'value_template': '{{value_json.{0}}}'.format(curType),
-                      'unit_of_measurement': ({True: '°C', False: '%'}) [curType == "temperature"] ,
-                      'device': {
-                          'identifiers': self.deviceIdentifier[loc],
-                          'name': self.deviceName[loc]
+                  mqttPayload = json.dumps({"device_class": curType,
+                      "name": "{0}_{1}".format(loc, curType).lower(),
+                      "state_topic": "home/{0}/meas".format(loc),
+                      "unique_id": "{0}_{1}".format(loc, curType),
+                      "value_template":  "{{{{ value_json.HTU21.{0} | round(2) }}}}".format(curType),
+                      "unit_of_measurement": ({True: "°C", False: "%"}) [curType == "temperature"] ,
+                      "device": {
+                          "identifiers": self.deviceIdentifier[loc],
+                          "name": self.deviceName[loc]
                           }
-                      })
+                      }, indent=2)
                   print("publishing: " + mqttTopic + " payload: " + mqttPayload, flush=True)
                   pubs(self.client, self.mqttBroker, mqttTopic, mqttPayload)
               self.lstReceivedLocations.append(loc)
@@ -111,12 +110,11 @@ class MeasurementResource(object):
       #print("\ttemperature: " + repr(temperatureCelsius), flush=True)
       #print("\thumidity: " + repr(humidityPerc), flush=True)
       mqttTopic=self.mqttMeasTopic.format(sourceName)
-      rounder = Decimal('0.1')
       mqttPayload = json.dumps({'HTU21':{
-          'temperature':Decimal(temperatureCelsius).quantize(rounder),
-          'humidity':Decimal(humidityPerc).quantize(rounder),
-          'dewpoint':Decimal(dewPoint).quantize(rounder)},
-          },indent=2, cls=DecimalEncoder)
+          'temperature':temperatureCelsius,
+          'humidity':humidityPerc,
+          'dewpoint':dewPoint,
+          }},indent=2) 
       print("publishing: " + mqttTopic + " payload: " + mqttPayload, flush=True)
       pubs(self.client, self.mqttBroker, mqttTopic, mqttPayload)
 
@@ -132,12 +130,6 @@ def pubs(client, mqttBroker, topic, payload):
       print("mqtt publish resulted in error: " + repr(ex))
 
 
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, decimal.Decimal):
-            return str(o)
-        return super(DecimalEncoder, self).default(o)
-
 ##set backend for authentication
 #backend = BasicAuthBackend(basic_loader)
 ##create middleware interacting with backend
@@ -150,3 +142,7 @@ logger_endpoint.init()
 print("initialized REST api logger", flush=True)
 api.add_route('/meas', logger_endpoint)
 print("added endpoint for measurements", flush=True)
+logger_endpoint.setupNewLocation("SZ")
+logger_endpoint.setupNewLocation("SZ")
+logger_endpoint.setupNewLocation("SZ")
+logger_endpoint.setupNewLocation("WZ")
