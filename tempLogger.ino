@@ -16,7 +16,6 @@ boolean outputVerbose = false;
 int status = WL_IDLE_STATUS;  // the Wi-Fi radio's status
 int ledState = LOW;           // ledState used to set the LED
 
-
 // various timers
 unsigned long previousMillisInfo = 0;       // will store last time Wi-Fi information was updated
 unsigned long previousMillisLED = 0;        // will store the last time LED was updated
@@ -118,16 +117,16 @@ void loop() {
 
     if (outputMemory) {
       display_freeram();
-    }
-  }
+    }  }
 }
 
 void display_freeram() {
   Serial.print(F("- SRAM left: "));
   Serial.println(freeRam());
 }
-
+    
 int freeRam() {
   char top = ' ';
   return &top - reinterpret_cast<char*>(sbrk(0));
 }
+

@@ -31,11 +31,7 @@ class MeasurementResource(object):
   def mqttDisconnected(self, client, userdata, rc=0):
       print("mqtt disconnected rc:"+str(rc), flush=True)
       client.loop_stop()
-
-  #def mqttPublished(self, client, userdata, mid=0):
-      #print("mqtt published ",  flush=True)
-
-
+      
   def on_post(self, req, resp):
       #print("entering post for path: " + req.path, flush=True)
       if req.path != "/meas":
@@ -96,6 +92,7 @@ class MeasurementResource(object):
       
       humidityString=dataAsRequest.get_param("h", required=True, default="nodata")
       humidityPPM=dataAsRequest.get_param_as_int("h",min_value=0,max_value=2000000,required=True) 
+
 
       humidityPerc=humidityPPM/10000;
       
