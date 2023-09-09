@@ -32,10 +32,6 @@ class MeasurementResource(object):
       print("mqtt disconnected rc:"+str(rc), flush=True)
       client.loop_stop()
 
-  #def mqttPublished(self, client, userdata, mid=0):
-      #print("mqtt published ",  flush=True)
-
-
   def on_post(self, req, resp):
       #print("entering post for path: " + req.path, flush=True)
       if req.path != "/meas":
