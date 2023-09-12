@@ -83,6 +83,7 @@ void loop() {
     if (outputVerbose) {
       senH->outputPressTempSensors();
     }
+    comH->keepAlive();
     if (senH->updateSensorValues()) {
       char* serialOutput = comH->postValuesToServer(
         senH->getActualTemperatureAvg(),
