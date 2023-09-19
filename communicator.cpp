@@ -32,6 +32,12 @@ int Communicator::initializeWiFi(int statIn, unsigned long currentMillis) {
     // wait 0.2 seconds for connection:
     delay(200);
   }
+  char msg[255];
+  // you're connected now, so print out the data:
+  snprintf(msg, 255, "You're connected to the network\nWifi - Firmware: %s latest: %s", WiFi.firmwareVersion(), WIFI_FIRMWARE_LATEST_VERSION);
+  tempUtil::println(msg);
+  tempUtil::println("---------------------------------------");
+
   //we are connected to WiFi  now connect to mqtt
   //connectToMqtt();
 
@@ -42,16 +48,19 @@ int Communicator::initializeWiFi(int statIn, unsigned long currentMillis) {
   snprintf(topic, 255, "home/%s/will", LOCATION);
   
 
-  mqtt.beginWill(topic, true, 1);
-  mqtt.print("conn lost");
-  mqtt.endWill();
-  mqtt.setId(id);
+  // mqtt.beginWill(topic, true, 1);
+  // mqtt.print("conn lost");
+  // mqtt.endWill();
+  // mqtt.setId(id);
   mqtt.setUsernamePassword(MQTT_USR, MQTT_PWD);
-  if (!mqtt.connect(MQTT_HOST)) {
+  for (int i=0;i<10 &&  !mqtt.connect(MQTT_HOST);i++) {
     tempUtil::print("mqtt connection failed with error code: ");
     tempUtil::println(mqtt.connectError());
-    while (1)
-      ;
+    delay(100);
+  }
+  if (!mqtt.connected()){
+    tempUtil::println("giving up");
+    while(1);
   }
 
   return stat;

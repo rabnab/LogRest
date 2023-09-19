@@ -29,7 +29,6 @@ SensorHandler* senH;
 
 
 void setup() {
-  // put your setup code here, to run once:
   // Initialize serial and wait for port to open:
   Serial1.begin(9600);
   Serial.begin(9600);
@@ -52,11 +51,6 @@ void setup() {
   status = comH->initializeWiFi(status, millis());
 
   tempUtil::println("\0");
-  char msg[255];
-  // you're connected now, so print out the data:
-  snprintf(msg, 255, "You're connected to the network\nWifi - Firmware: %s latest: %s", WiFi.firmwareVersion(), WIFI_FIRMWARE_LATEST_VERSION);
-  tempUtil::println(msg);
-  tempUtil::println("---------------------------------------");
 
   senH = new SensorHandler();
   if (!senH->init()) {
