@@ -12,8 +12,8 @@ void tempUtil::print(const char* str) {
 
 
 void tempUtil::println(double v) {
-  Serial.print(v);
-  Serial1.print(v);
+  Serial.println(v);
+  Serial1.println(v);
 }
 
 void tempUtil::print(double v) {
